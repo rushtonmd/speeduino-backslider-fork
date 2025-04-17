@@ -2340,7 +2340,7 @@ void setPinMapping(byte boardID)
 
         pinTrigger = 20; //The CAS pin
         pinTrigger2 = 21; //The Cam Sensor pin
-
+        pinTrigger3 = 34; // Uses the same pin as Spare 1 as to not conflict with the CAN1 RX pin
         pinFuelPump = 5; //Fuel pump output
         pinTachOut = 0; //Tacho output pin
 

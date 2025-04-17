@@ -36,7 +36,7 @@ void initCAN()
     //enable local can interface
     //setup can interface to 500k   
     Can0.begin();
-    Can0.setBaudRate(500000);
+    Can0.setBaudRate(250000);
     Can0.enableFIFO();
     /* Note: This must come after the call to setPinMapping() or else pins 29 and 30 will become unusable as outputs.
      * Workaround for: https://github.com/tonton81/FlexCAN_T4/issues/14 */
