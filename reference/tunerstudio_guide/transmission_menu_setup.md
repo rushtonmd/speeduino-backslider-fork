@@ -182,6 +182,66 @@ requiresPowerCycle = transType
 3. Each submenu opens its respective dialog
 4. Changes require power cycle where specified
 
+## Shift Curve Implementation
+
+The transmission control system uses 2D tables for shift point determination, similar to other curves in Speeduino. Here's how to implement shift curves:
+
+### Table Definitions
+Add these to your globals.cpp:
+```cpp
+struct table2D shiftUpTable;    ///< TPS vs Speed upshift points
+struct table2D shiftDownTable;  ///< TPS vs Speed downshift points
+```
+
+### Shift Point Logic
+Create functions to check shift points:
+```cpp
+bool shouldShiftUp(uint16_t currentSpeed, uint8_t currentTPS) {
+    return (currentSpeed >= table2D_getValue(&shiftUpTable, currentTPS));
+}
+
+bool shouldShiftDown(uint16_t currentSpeed, uint8_t currentTPS) {
+    return (currentSpeed <= table2D_getValue(&shiftDownTable, currentTPS));
+}
+```
+
+### INI Configuration
+Add these curve definitions to your INI file:
+```ini
+curve = shift_up_curve, "Upshift Points"
+    columnLabel = "TPS", "Speed"
+    xAxis = 0, 255, 4
+    yAxis = 0, 100, 4
+    xBins = tpsBins, throttle
+    yBins = upshiftSpeeds
+
+curve = shift_down_curve, "Downshift Points"
+    columnLabel = "TPS", "Speed"
+    xAxis = 0, 255, 4
+    yAxis = 0, 100, 4
+    xBins = tpsBins, throttle
+    yBins = downshiftSpeeds
+```
+
+### Usage Example
+```cpp
+void checkShiftPoints() {
+    if (shouldShiftUp(currentStatus.speed, currentStatus.TPS)) {
+        // Trigger upshift
+    }
+    else if (shouldShiftDown(currentStatus.speed, currentStatus.TPS)) {
+        // Trigger downshift
+    }
+}
+```
+
+The table lookup system provides:
+- Automatic interpolation between points
+- Memory efficiency
+- Built-in caching for performance
+- Easy configuration through TunerStudio
+- Consistent with other Speeduino curve implementations
+
 ## Common Considerations
 1. Memory usage in the config structure
 2. EEPROM storage requirements
