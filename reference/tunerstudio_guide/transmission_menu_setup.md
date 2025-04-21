@@ -283,3 +283,54 @@ This uses the existing curve definition:
         yBins       = shiftup23, vss1
         yBins       = shiftdown23, vss1
 ``` 
+
+## Implementation Example: Shift Curve Using Repurposed Variables
+
+### Overview
+This example shows how to implement a shift curve by repurposing existing variables from the knock control system, avoiding the need to create new variables.
+
+### Menu Structure
+```ini
+menu = "Transmission"
+    subMenu = transmission_menu, "Transmission Menu"
+    subMenu = shift_curve_1_2_dialog, "Shift Curves 1/2"
+    subMenu = shift_curve_2_3_dialog, "Shift Curves 2/3"
+    subMenu = shift_curve_3_4_dialog, "Shift Curves 3/4"
+```
+
+### Curve Definition
+```ini
+curve = shift_curve_1_2_panel, "Shift Curves 1/2"
+    columnLabel = "%load", "Up", "Down"
+    xAxis       = 0, 100, 6    ; load from 0 - 100%
+    yAxis       = 0, 120, 6    ; speed from 0 - 120mph
+    xBins       = knock_window_rpms, map    ; Reusing knock RPM bins for load
+    yBins       = knock_window_angle        ; Reusing knock angle for upshift speed
+    yBins       = knock_window_dur          ; Reusing knock duration for downshift speed
+```
+
+### Variable Repurposing
+The following knock control variables were repurposed for shift control:
+```ini
+; Original knock variables repurposed for shift control
+knock_window_rpms = array,  U08, 97, [6], "kPa",  2.0, 0.0, 0.0, 511.0, 0    ; Now used for load
+knock_window_angle = array, U08, 103, [6], "kPH", 1.0, 0.0, 0, 100, 0         ; Now used for upshift speed
+knock_window_dur = array,   U08, 109, [6], "kPH", 1.0, 0.0, 0, 100, 0         ; Now used for downshift speed
+```
+
+### Default Values
+Default values were set for the shift curve:
+```ini
+defaultValue = knock_window_angle, 20 30 40 50 60 70    ; Upshift speeds
+defaultValue = knock_window_rpms, 0 20 40 60 80 100     ; Load values
+defaultValue = knock_window_dur, 15 25 35 45 55 65      ; Downshift speeds
+```
+
+### Notes
+1. This implementation reuses existing variables to avoid creating new ones
+2. The knock control variables were repurposed with appropriate scaling:
+   - RPM bins → kPa for load
+   - Angle → KPH for upshift speed
+   - Duration → KPH for downshift speed
+3. Default values provide a reasonable starting point for shift points
+4. The curve editor allows visualization of both upshift and downshift points on the same graph 
