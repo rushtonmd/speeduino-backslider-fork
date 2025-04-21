@@ -248,3 +248,38 @@ The table lookup system provides:
 3. Backward compatibility
 4. Default values for new installations
 5. Documentation for end users 
+
+### TunerStudio Curve Editor Example
+```ini
+[CurveEditor]
+    curve = shiftgear2ud, "Shift Curve 2 up/down"
+       ; topicHelp = "file://$getProjectsDirPath()/docs/Trans_Control-1.2.pdf#shiftcurves"
+        columnLabel = "%load", "Up", "Down"
+        xAxis       = 0, 100, 6
+        yAxis       =  0, 200, 6
+        xBins       = shift23load, load
+        yBins       = shiftup23, vss1
+        yBins       = shiftdown23, vss1
+```
+
+### Repurposing Existing Dialog Structure
+Here's an example of how to repurpose the pwmFan dialog structure for shift curves:
+
+```ini
+dialog = shiftCurve, "Shift Curve",
+        panel = shift_curve,
+        field = "Load vs Speed", shiftgear2ud, {shiftgear2ud >= 0}
+```
+
+This uses the existing curve definition:
+```ini
+[CurveEditor]
+    curve = shiftgear2ud, "Shift Curve 2 up/down"
+       ; topicHelp = "file://$getProjectsDirPath()/docs/Trans_Control-1.2.pdf#shiftcurves"
+        columnLabel = "%load", "Up", "Down"
+        xAxis       = 0, 100, 6
+        yAxis       =  0, 200, 6
+        xBins       = shift23load, load
+        yBins       = shiftup23, vss1
+        yBins       = shiftdown23, vss1
+``` 
