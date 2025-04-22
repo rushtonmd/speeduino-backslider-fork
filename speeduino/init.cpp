@@ -21,6 +21,7 @@
 #include "idle.h"
 #include "table2d.h"
 #include "acc_mc33810.h"
+#include "BacksliderTransmission/BacksliderTransmission.h"
 #include BOARD_H //Note that this is not a real file, it is defined in globals.h. 
 #if defined(EEPROM_RESET_PIN)
   #include EEPROM_LIB_H
@@ -1241,6 +1242,9 @@ void initialiseAll(void)
     readCLT(false); // Need to read coolant temp to make priming pulsewidth work correctly. The false here disables use of the filter
     readTPS(false); // Need to read tps to detect flood clear state
 
+    // Initialize transmission if enabled
+    initTransmission();
+
     /* tacho sweep function. */
     currentStatus.tachoSweepEnabled = (configPage2.useTachoSweep > 0);
     /* SweepMax is stored as a byte, RPM/100. divide by 60 to convert min to sec (net 5/3).  Multiply by ignition pulses per rev.
@@ -2333,7 +2337,11 @@ void setPinMapping(byte boardID)
         pinSpareTemp2 = A17;
 
         pinTrigger = 20; //The CAS pin
-        pinTrigger2 = 21; //The Cam Sensor pin
+
+        // TRANSMISSION MOD TESTING START 
+        // I need to se the cam trigger to something besides 21 otherwise the transmission vss won't work
+        pinTrigger2 = 34; //The Cam Sensor pin
+        // TRANSMISSION MOD TESTING END
         pinTrigger3 = 34; //Uses one of the protected spare digital inputs.
 
         pinFuelPump = 5; //Fuel pump output

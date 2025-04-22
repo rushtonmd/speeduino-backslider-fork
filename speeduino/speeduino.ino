@@ -48,6 +48,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "load_source.h"
 #include RTC_LIB_H //Defined in each boards .h file
 #include BOARD_H //Note that this is not a real file, it is defined in globals.h. 
+#include "BacksliderTransmission/BacksliderTransmission.h" // Add our transmission header
 
 
 uint16_t req_fuel_uS = 0; /**< The required fuel variable (As calculated by TunerStudio) in uS */
@@ -283,8 +284,12 @@ void __attribute__((always_inline)) loop(void)
       // Air conditioning control
       airConControl();
 
-      currentStatus.vss = getSpeed();
-      currentStatus.gear = getGear();
+      // TRANSMISSION MOD TESTING START 
+      //currentStatus.vss = getSpeed();
+      // This function updates the gears and speed sensor for the transmission
+      updateTransmission();
+      //currentStatus.gear = getGear();
+      // TRANSMISSION MOD TESTING END
 
       #if defined(NATIVE_CAN_AVAILABLE)
       sendCANBroadcast(10);
