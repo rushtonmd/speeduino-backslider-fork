@@ -7,6 +7,34 @@ static volatile unsigned long vssPulseCount = 0;
 static volatile bool vssInterruptInProgress = false;
 static const float VSS_PULSES_PER_KM = 5000.0; // 5000 pulses per kilometer
 static const unsigned long MIN_PULSE_INTERVAL = 1000; // Minimum pulse interval in microseconds to prevent noise
+static float smoothedSpeed = 0.0; // For storing the smoothed speed value
+static const float SMOOTHING_FACTOR = 0.1; // Adjust this value between 0.0 and 1.0 (lower = smoother)
+static unsigned long lastUpdateTime = 0; // For tracking time between updates
+static bool debugEnabled = false; // Debug flag for this module
+
+// Debug helper function
+void debugTable2D(const char* tableName, table2D* table, float input) {
+    if (!debugEnabled) return;
+    
+    Serial.print("Table ");
+    Serial.print(tableName);
+    Serial.print(" lookup with input ");
+    Serial.print(input);
+    Serial.print(" -> ");
+    Serial.print(table2D_getValue(table, input));
+    Serial.println();
+    
+    // Print table contents
+    Serial.print("Table contents: ");
+    for (int i = 0; i < table->xSize; i++) {
+        Serial.print("(");
+        Serial.print(table2D_getAxisValue(table, i));
+        Serial.print(",");
+        Serial.print(table2D_getRawValue(table, i));
+        Serial.print(") ");
+    }
+    Serial.println();
+}
 
 // VSS interrupt handler
 void vssInterrupt() {
@@ -18,30 +46,6 @@ void vssInterrupt() {
     unsigned long pulseInterval = currentTime - lastVssTime;
     lastVssTime = currentTime;
     vssPulseCount++;
-    
-    // Debug output
-    //Serial.print("VSS Interrupt! Count: ");
-    //Serial.print(vssPulseCount);
-    //Serial.print(" Interval: ");
-    //Serial.print(pulseInterval);
-    //Serial.print(" Pin state: ");
-    //Serial.println(digitalRead(21));
-    
-    // Calculate speed in km/h
-    // Formula: (3600 * 1000000) / (pulseInterval * VSS_PULSES_PER_KM)
-    // Where:
-    // - 3600 is seconds per hour
-    // - 1000000 converts microseconds to seconds
-    // - VSS_PULSES_PER_KM is the number of pulses per kilometer
-    // - pulseInterval is the time between pulses in microseconds
-    if (pulseInterval > MIN_PULSE_INTERVAL) { // Add minimum interval check to filter noise
-        float speed = (3600000.0 * 1000.0) / (pulseInterval * VSS_PULSES_PER_KM);
-        // Cap maximum speed to prevent overflow
-        if (speed > 255) speed = 255;
-        currentStatus.vss = (uint16_t)speed; // Convert to uint16_t for storage
-        //Serial.print("Calculated speed: ");
-        //Serial.println(currentStatus.vss);
-    }
     
     vssInterruptInProgress = false;
 }
@@ -81,7 +85,8 @@ static byte* const gearSelector = &currentStatus.airConStatus;
 
 // Helper functions for cleaner code
 static inline GearSelector getGearSelector() {
-    return static_cast<GearSelector>(*gearSelector);
+    return GearSelector::DRIVE;
+    //return static_cast<GearSelector>(*gearSelector);
 }
 
 static inline CurrentGear getCurrentGear() {
@@ -111,16 +116,16 @@ void initTransmission() {
         pinMode(configPageTransmission.shiftSolenoid6Pin, OUTPUT);
         
         // Clean up any existing interrupts on pin 21
-        detachInterrupt(digitalPinToInterrupt(21));
+        //detachInterrupt(digitalPinToInterrupt(21));
         
         // Set up VSS interrupt with hard coded pin 21
-        pinMode(21, INPUT);
+        //pinMode(21, INPUT);
         //Serial.println("Setting up VSS interrupt on pin 21");
         //Serial.print("Pin 21 state: ");
         //Serial.println(digitalRead(21));
         
         // Try both rising and falling edge
-        attachInterrupt(21, vssInterrupt, RISING);
+        //attachInterrupt(21, vssInterrupt, RISING);
         //Serial.println("VSS interrupt attached on CHANGE edge");
         
         // Build shift curves using flex fuel/boost tables
@@ -144,8 +149,8 @@ void initTransmission() {
             configPageTransmission.shift2_3_down_tps[i] = configPage10.flexBoostBins[i];
             
             // VSS points for upshift (using flexBoostAdj)
-            configPageTransmission.shift2_3_up_vss[i] = configPage10.flexBoostAdj[i];
-            
+            configPageTransmission.shift2_3_up_vss[i] = configPage10.fuelTempValues[i];
+                     
             // VSS points for downshift (using flexFuelBins)
             configPageTransmission.shift2_3_down_vss[i] = configPage10.flexFuelBins[i];
         }
@@ -173,99 +178,157 @@ void initTransmission() {
         
         // Initialize CAN interface
         // TODO: Add CAN initialization code
+
+        setCurrentGear(CurrentGear::FIRST);
     }
 }
 
 void updateTransmission() {
-
-    if (!configPageTransmission.enableTransmission) return;
-
-   
-    // Get current engine parameters from CAN inputs
-    // Note: currentStatus.vss is now set directly by the VSS interrupt handler
-    byte currentTPS = currentStatus.canin[configPageTransmission.canTPSIndex];
-    byte currentMAP = currentStatus.canin[configPageTransmission.canMAPIndex];
-    byte currentCLT = currentStatus.canin[configPageTransmission.canCLTIndex];
+    static unsigned long lastUpdateTime = 0;
+    unsigned long currentTime = millis();
     
-    // Update transmission state based on current parameters
-    if (getGearSelector() == GearSelector::DRIVE) {
-        // Check for upshifts using the 2D tables
-        switch (getCurrentGear()) {
-            case CurrentGear::FIRST:
-                if (currentStatus.vss > table2D_getValue(&shift1_2_up_table, currentTPS)) {
-                    // Shift to 2nd
-                    setCurrentGear(CurrentGear::SECOND);
-                    lastShiftTime = millis();
+    // Update every 100ms
+    if (currentTime - lastUpdateTime >= 100)
+    {
+        lastUpdateTime = currentTime;
+        
+        // Calculate speed based on pulses since last update
+        //unsigned long currentPulseCount = vssPulseCount;
+        //vssPulseCount = 0; // Reset for next interval
+        
+        // Calculate speed in km/h
+        // Formula: (pulses * 3600 * 1000) / (VSS_PULSES_PER_KM * updateInterval)
+        // Where:
+        // - pulses is the number of pulses in the interval
+        // - 3600 is seconds per hour
+        // - 1000 converts milliseconds to seconds
+        // - VSS_PULSES_PER_KM is the number of pulses per kilometer
+        // - updateInterval is the time between updates in milliseconds
+        //float rawSpeed = (currentPulseCount * 3600.0 * 1000.0) / (VSS_PULSES_PER_KM * 100.0);
+        
+        // Apply exponential moving average smoothing
+        //smoothedSpeed = (SMOOTHING_FACTOR * rawSpeed) + ((1.0 - SMOOTHING_FACTOR) * smoothedSpeed);
+        
+        // Cap maximum speed to prevent overflow
+        //if (smoothedSpeed > 255) smoothedSpeed = 255;
+        //currentStatus.vss = (uint16_t)smoothedSpeed;
+        
+        // Get current engine parameters from CAN inputs
+        byte currentTPS = currentStatus.canin[configPageTransmission.canTPSIndex];
+        byte currentMAP = currentStatus.canin[configPageTransmission.canMAPIndex];
+        byte currentCLT = currentStatus.canin[configPageTransmission.canCLTIndex];
+
+
+                    // Debug print flexBoostAdj values
+            if(debugEnabled) {
+                for(byte i = 0; i < 6; i++) {
+                    Serial.print("fuelTempValues[");
+                    Serial.print(i);
+                    Serial.print("] = ");
+                    Serial.println(configPage10.fuelTempValues[i]);
                 }
-                break;
-            case CurrentGear::SECOND:
-                if (currentStatus.vss > table2D_getValue(&shift2_3_up_table, currentTPS)) {
-                    // Shift to 3rd
-                    setCurrentGear(CurrentGear::THIRD);
-                    lastShiftTime = millis();
-                }
-                break;
-            case CurrentGear::THIRD:
-                if (currentStatus.vss > table2D_getValue(&shift3_4_up_table, currentTPS)) {
-                    // Shift to 4th
-                    setCurrentGear(CurrentGear::FOURTH);
-                    lastShiftTime = millis();
-                }
-                break;
-            default:
-                break;
+            }
+        
+        // Update transmission state based on current parameters
+        if (getGearSelector() == GearSelector::DRIVE) {
+            if(debugEnabled) {  
+                Serial.println("Trying to shift!");
+                Serial.print("Current VSS: ");
+                Serial.println(currentStatus.vss);
+                Serial.print("Current gear: ");
+                Serial.print((int)getCurrentGear());
+                Serial.println();
+            }
+            
+            // Check for upshifts using the 2D tables
+            switch (getCurrentGear()) {
+                case CurrentGear::FIRST:
+                    debugTable2D("1-2 up", &shift1_2_up_table, currentTPS);
+                    if (currentStatus.vss > table2D_getValue(&shift1_2_up_table, currentTPS)) {
+                        // Shift to 2nd
+                        setCurrentGear(CurrentGear::SECOND);
+                        lastShiftTime = millis();
+                        if(debugEnabled) {
+                            Serial.print("Shifted to gear: ");
+                            Serial.print((int)getCurrentGear());
+                            Serial.println();
+                        }
+                    }
+                    break;
+                case CurrentGear::SECOND:
+                    debugTable2D("2-3 up", &shift2_3_up_table, currentTPS);
+                    if (currentStatus.vss > table2D_getValue(&shift2_3_up_table, currentTPS)) {
+                        // Shift to 3rd
+                        setCurrentGear(CurrentGear::THIRD);
+                        lastShiftTime = millis();
+                    }
+                    break;
+                case CurrentGear::THIRD:
+                    debugTable2D("3-4 up", &shift3_4_up_table, currentTPS);
+                    if (currentStatus.vss > table2D_getValue(&shift3_4_up_table, currentTPS)) {
+                        // Shift to 4th
+                        setCurrentGear(CurrentGear::FOURTH);
+                        lastShiftTime = millis();
+                    }
+                    break;
+                default:
+                    break;
+            }
+            
+            // Check for downshifts
+            switch (getCurrentGear()) {
+                case CurrentGear::SECOND:
+                    debugTable2D("1-2 down", &shift1_2_down_table, currentTPS);
+                    if (currentStatus.vss < table2D_getValue(&shift1_2_down_table, currentTPS)) {
+                        // Shift to 1st
+                        setCurrentGear(CurrentGear::FIRST);
+                        lastShiftTime = millis();
+                    }
+                    break;
+                case CurrentGear::THIRD:
+                    debugTable2D("2-3 down", &shift2_3_down_table, currentTPS);
+                    if (currentStatus.vss < table2D_getValue(&shift2_3_down_table, currentTPS)) {
+                        // Shift to 2nd
+                        setCurrentGear(CurrentGear::SECOND);
+                        lastShiftTime = millis();
+                    }
+                    break;
+                case CurrentGear::FOURTH:
+                    debugTable2D("3-4 down", &shift3_4_down_table, currentTPS);
+                    if (currentStatus.vss < table2D_getValue(&shift3_4_down_table, currentTPS)) {
+                        // Shift to 3rd
+                        setCurrentGear(CurrentGear::THIRD);
+                        lastShiftTime = millis();
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        else if (getGearSelector() == GearSelector::SECOND) {
+            // Force 2nd gear
+            setCurrentGear(CurrentGear::SECOND);
+        }
+        else if (getGearSelector() == GearSelector::FIRST) {
+            // Force 1st gear
+            setCurrentGear(CurrentGear::FIRST);
+        }
+        else if (getGearSelector() == GearSelector::REVERSE) {
+            setCurrentGear(CurrentGear::REVERSE);
+        }
+        else if (getGearSelector() == GearSelector::NEUTRAL) {
+            setCurrentGear(CurrentGear::NEUTRAL);
+        }
+        else if (getGearSelector() == GearSelector::PARK) {
+            setCurrentGear(CurrentGear::PARK);
         }
         
-        // Check for downshifts
-        switch (getCurrentGear()) {
-            case CurrentGear::SECOND:
-                if (currentStatus.vss < table2D_getValue(&shift1_2_down_table, currentTPS)) {
-                    // Shift to 1st
-                    setCurrentGear(CurrentGear::FIRST);
-                    lastShiftTime = millis();
-                }
-                break;
-            case CurrentGear::THIRD:
-                if (currentStatus.vss < table2D_getValue(&shift2_3_down_table, currentTPS)) {
-                    // Shift to 2nd
-                    setCurrentGear(CurrentGear::SECOND);
-                    lastShiftTime = millis();
-                }
-                break;
-            case CurrentGear::FOURTH:
-                if (currentStatus.vss < table2D_getValue(&shift3_4_down_table, currentTPS)) {
-                    // Shift to 3rd
-                    setCurrentGear(CurrentGear::THIRD);
-                    lastShiftTime = millis();
-                }
-                break;
-            default:
-                break;
-        }
+        // Send current status via CAN
+        sendTransmissionCAN();
+        
+        // Check for incoming CAN messages
+        receiveTransmissionCAN();
     }
-    else if (getGearSelector() == GearSelector::SECOND) {
-        // Force 2nd gear
-        setCurrentGear(CurrentGear::SECOND);
-    }
-    else if (getGearSelector() == GearSelector::FIRST) {
-        // Force 1st gear
-        setCurrentGear(CurrentGear::FIRST);
-    }
-    else if (getGearSelector() == GearSelector::REVERSE) {
-        setCurrentGear(CurrentGear::REVERSE);
-    }
-    else if (getGearSelector() == GearSelector::NEUTRAL) {
-        setCurrentGear(CurrentGear::NEUTRAL);
-    }
-    else if (getGearSelector() == GearSelector::PARK) {
-        setCurrentGear(CurrentGear::PARK);
-    }
-    
-    // Send current status via CAN
-    sendTransmissionCAN();
-    
-    // Check for incoming CAN messages
-    receiveTransmissionCAN();
 }
 
 void sendTransmissionCAN() {
