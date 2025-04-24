@@ -1,16 +1,9 @@
 #include "BacksliderTransmission.h"
+#include "VSSHandler.h"
 #include "globals.h"  // This contains the currentStatus struct
 
-// VSS interrupt handling
-static volatile unsigned long lastVssTime = 0;
-static volatile unsigned long vssPulseCount = 0;
-static volatile bool vssInterruptInProgress = false;
-static const float VSS_PULSES_PER_KM = 5000.0; // 5000 pulses per kilometer
-static const unsigned long MIN_PULSE_INTERVAL = 1000; // Minimum pulse interval in microseconds to prevent noise
-static float smoothedSpeed = 0.0; // For storing the smoothed speed value
-static const float SMOOTHING_FACTOR = 0.1; // Adjust this value between 0.0 and 1.0 (lower = smoother)
-static unsigned long lastUpdateTime = 0; // For tracking time between updates
-static bool debugEnabled = false; // Debug flag for this module
+// Debug flag for this module
+static bool debugEnabled = true;
 
 // Debug helper function
 void debugTable2D(const char* tableName, table2D* table, float input) {
@@ -34,20 +27,6 @@ void debugTable2D(const char* tableName, table2D* table, float input) {
         Serial.print(") ");
     }
     Serial.println();
-}
-
-// VSS interrupt handler
-void vssInterrupt() {
-    // Prevent re-entrancy
-    if (vssInterruptInProgress) return;
-    vssInterruptInProgress = true;
-    
-    unsigned long currentTime = micros();
-    unsigned long pulseInterval = currentTime - lastVssTime;
-    lastVssTime = currentTime;
-    vssPulseCount++;
-    
-    vssInterruptInProgress = false;
 }
 
 // Global configuration
@@ -115,18 +94,8 @@ void initTransmission() {
         pinMode(configPageTransmission.shiftSolenoid5Pin, OUTPUT);
         pinMode(configPageTransmission.shiftSolenoid6Pin, OUTPUT);
         
-        // Clean up any existing interrupts on pin 21
-        //detachInterrupt(digitalPinToInterrupt(21));
-        
-        // Set up VSS interrupt with hard coded pin 21
-        //pinMode(21, INPUT);
-        //Serial.println("Setting up VSS interrupt on pin 21");
-        //Serial.print("Pin 21 state: ");
-        //Serial.println(digitalRead(21));
-        
-        // Try both rising and falling edge
-        //attachInterrupt(21, vssInterrupt, RISING);
-        //Serial.println("VSS interrupt attached on CHANGE edge");
+        // Initialize VSS
+        initVSS();
         
         // Build shift curves using flex fuel/boost tables
         // 1-2 Shift Curve
@@ -184,151 +153,113 @@ void initTransmission() {
 }
 
 void updateTransmission() {
-    static unsigned long lastUpdateTime = 0;
-    unsigned long currentTime = millis();
+    // Update VSS speed calculation
+    updateVSS();
     
-    // Update every 100ms
-    if (currentTime - lastUpdateTime >= 100)
-    {
-        lastUpdateTime = currentTime;
-        
-        // Calculate speed based on pulses since last update
-        //unsigned long currentPulseCount = vssPulseCount;
-        //vssPulseCount = 0; // Reset for next interval
-        
-        // Calculate speed in km/h
-        // Formula: (pulses * 3600 * 1000) / (VSS_PULSES_PER_KM * updateInterval)
-        // Where:
-        // - pulses is the number of pulses in the interval
-        // - 3600 is seconds per hour
-        // - 1000 converts milliseconds to seconds
-        // - VSS_PULSES_PER_KM is the number of pulses per kilometer
-        // - updateInterval is the time between updates in milliseconds
-        //float rawSpeed = (currentPulseCount * 3600.0 * 1000.0) / (VSS_PULSES_PER_KM * 100.0);
-        
-        // Apply exponential moving average smoothing
-        //smoothedSpeed = (SMOOTHING_FACTOR * rawSpeed) + ((1.0 - SMOOTHING_FACTOR) * smoothedSpeed);
-        
-        // Cap maximum speed to prevent overflow
-        //if (smoothedSpeed > 255) smoothedSpeed = 255;
-        //currentStatus.vss = (uint16_t)smoothedSpeed;
-        
-        // Get current engine parameters from CAN inputs
-        byte currentTPS = currentStatus.canin[configPageTransmission.canTPSIndex];
-        byte currentMAP = currentStatus.canin[configPageTransmission.canMAPIndex];
-        byte currentCLT = currentStatus.canin[configPageTransmission.canCLTIndex];
+    // Get current engine parameters from CAN inputs
+    byte currentTPS = currentStatus.canin[configPageTransmission.canTPSIndex];
+    byte currentMAP = currentStatus.canin[configPageTransmission.canMAPIndex];
+    byte currentCLT = currentStatus.canin[configPageTransmission.canCLTIndex];
 
-
-                    // Debug print flexBoostAdj values
-            if(debugEnabled) {
-                for(byte i = 0; i < 6; i++) {
-                    Serial.print("fuelTempValues[");
-                    Serial.print(i);
-                    Serial.print("] = ");
-                    Serial.println(configPage10.fuelTempValues[i]);
+    // Update transmission state based on current parameters
+    if (getGearSelector() == GearSelector::DRIVE) {
+        if(debugEnabled) {  
+            Serial.println("Trying to shift!");
+            Serial.print("Current VSS: ");
+            Serial.println(currentStatus.vss);
+            Serial.print("Current gear: ");
+            Serial.print((int)getCurrentGear());
+            Serial.println();
+        }
+        
+        // Check for upshifts using the 2D tables
+        switch (getCurrentGear()) {
+            case CurrentGear::FIRST:
+                debugTable2D("1-2 up", &shift1_2_up_table, currentTPS);
+                if (currentStatus.vss > table2D_getValue(&shift1_2_up_table, currentTPS)) {
+                    // Shift to 2nd
+                    setCurrentGear(CurrentGear::SECOND);
+                    lastShiftTime = millis();
+                    if(debugEnabled) {
+                        Serial.print("Shifted to gear: ");
+                        Serial.print((int)getCurrentGear());
+                        Serial.println();
+                    }
                 }
-            }
-        
-        // Update transmission state based on current parameters
-        if (getGearSelector() == GearSelector::DRIVE) {
-            if(debugEnabled) {  
-                Serial.println("Trying to shift!");
-                Serial.print("Current VSS: ");
-                Serial.println(currentStatus.vss);
-                Serial.print("Current gear: ");
-                Serial.print((int)getCurrentGear());
-                Serial.println();
-            }
-            
-            // Check for upshifts using the 2D tables
-            switch (getCurrentGear()) {
-                case CurrentGear::FIRST:
-                    debugTable2D("1-2 up", &shift1_2_up_table, currentTPS);
-                    if (currentStatus.vss > table2D_getValue(&shift1_2_up_table, currentTPS)) {
-                        // Shift to 2nd
-                        setCurrentGear(CurrentGear::SECOND);
-                        lastShiftTime = millis();
-                        if(debugEnabled) {
-                            Serial.print("Shifted to gear: ");
-                            Serial.print((int)getCurrentGear());
-                            Serial.println();
-                        }
-                    }
-                    break;
-                case CurrentGear::SECOND:
-                    debugTable2D("2-3 up", &shift2_3_up_table, currentTPS);
-                    if (currentStatus.vss > table2D_getValue(&shift2_3_up_table, currentTPS)) {
-                        // Shift to 3rd
-                        setCurrentGear(CurrentGear::THIRD);
-                        lastShiftTime = millis();
-                    }
-                    break;
-                case CurrentGear::THIRD:
-                    debugTable2D("3-4 up", &shift3_4_up_table, currentTPS);
-                    if (currentStatus.vss > table2D_getValue(&shift3_4_up_table, currentTPS)) {
-                        // Shift to 4th
-                        setCurrentGear(CurrentGear::FOURTH);
-                        lastShiftTime = millis();
-                    }
-                    break;
-                default:
-                    break;
-            }
-            
-            // Check for downshifts
-            switch (getCurrentGear()) {
-                case CurrentGear::SECOND:
-                    debugTable2D("1-2 down", &shift1_2_down_table, currentTPS);
-                    if (currentStatus.vss < table2D_getValue(&shift1_2_down_table, currentTPS)) {
-                        // Shift to 1st
-                        setCurrentGear(CurrentGear::FIRST);
-                        lastShiftTime = millis();
-                    }
-                    break;
-                case CurrentGear::THIRD:
-                    debugTable2D("2-3 down", &shift2_3_down_table, currentTPS);
-                    if (currentStatus.vss < table2D_getValue(&shift2_3_down_table, currentTPS)) {
-                        // Shift to 2nd
-                        setCurrentGear(CurrentGear::SECOND);
-                        lastShiftTime = millis();
-                    }
-                    break;
-                case CurrentGear::FOURTH:
-                    debugTable2D("3-4 down", &shift3_4_down_table, currentTPS);
-                    if (currentStatus.vss < table2D_getValue(&shift3_4_down_table, currentTPS)) {
-                        // Shift to 3rd
-                        setCurrentGear(CurrentGear::THIRD);
-                        lastShiftTime = millis();
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-        else if (getGearSelector() == GearSelector::SECOND) {
-            // Force 2nd gear
-            setCurrentGear(CurrentGear::SECOND);
-        }
-        else if (getGearSelector() == GearSelector::FIRST) {
-            // Force 1st gear
-            setCurrentGear(CurrentGear::FIRST);
-        }
-        else if (getGearSelector() == GearSelector::REVERSE) {
-            setCurrentGear(CurrentGear::REVERSE);
-        }
-        else if (getGearSelector() == GearSelector::NEUTRAL) {
-            setCurrentGear(CurrentGear::NEUTRAL);
-        }
-        else if (getGearSelector() == GearSelector::PARK) {
-            setCurrentGear(CurrentGear::PARK);
+                break;
+            case CurrentGear::SECOND:
+                debugTable2D("2-3 up", &shift2_3_up_table, currentTPS);
+                if (currentStatus.vss > table2D_getValue(&shift2_3_up_table, currentTPS)) {
+                    // Shift to 3rd
+                    setCurrentGear(CurrentGear::THIRD);
+                    lastShiftTime = millis();
+                }
+                break;
+            case CurrentGear::THIRD:
+                debugTable2D("3-4 up", &shift3_4_up_table, currentTPS);
+                if (currentStatus.vss > table2D_getValue(&shift3_4_up_table, currentTPS)) {
+                    // Shift to 4th
+                    setCurrentGear(CurrentGear::FOURTH);
+                    lastShiftTime = millis();
+                }
+                break;
+            default:
+                break;
         }
         
-        // Send current status via CAN
-        sendTransmissionCAN();
-        
-        // Check for incoming CAN messages
-        receiveTransmissionCAN();
+        // Check for downshifts
+        switch (getCurrentGear()) {
+            case CurrentGear::SECOND:
+                debugTable2D("1-2 down", &shift1_2_down_table, currentTPS);
+                if (currentStatus.vss < table2D_getValue(&shift1_2_down_table, currentTPS)) {
+                    // Shift to 1st
+                    setCurrentGear(CurrentGear::FIRST);
+                    lastShiftTime = millis();
+                }
+                break;
+            case CurrentGear::THIRD:
+                debugTable2D("2-3 down", &shift2_3_down_table, currentTPS);
+                if (currentStatus.vss < table2D_getValue(&shift2_3_down_table, currentTPS)) {
+                    // Shift to 2nd
+                    setCurrentGear(CurrentGear::SECOND);
+                    lastShiftTime = millis();
+                }
+                break;
+            case CurrentGear::FOURTH:
+                debugTable2D("3-4 down", &shift3_4_down_table, currentTPS);
+                if (currentStatus.vss < table2D_getValue(&shift3_4_down_table, currentTPS)) {
+                    // Shift to 3rd
+                    setCurrentGear(CurrentGear::THIRD);
+                    lastShiftTime = millis();
+                }
+                break;
+            default:
+                break;
+        }
     }
+    else if (getGearSelector() == GearSelector::SECOND) {
+        // Force 2nd gear
+        setCurrentGear(CurrentGear::SECOND);
+    }
+    else if (getGearSelector() == GearSelector::FIRST) {
+        // Force 1st gear
+        setCurrentGear(CurrentGear::FIRST);
+    }
+    else if (getGearSelector() == GearSelector::REVERSE) {
+        setCurrentGear(CurrentGear::REVERSE);
+    }
+    else if (getGearSelector() == GearSelector::NEUTRAL) {
+        setCurrentGear(CurrentGear::NEUTRAL);
+    }
+    else if (getGearSelector() == GearSelector::PARK) {
+        setCurrentGear(CurrentGear::PARK);
+    }
+    
+    // Send current status via CAN
+    sendTransmissionCAN();
+    
+    // Check for incoming CAN messages
+    receiveTransmissionCAN();
 }
 
 void sendTransmissionCAN() {
