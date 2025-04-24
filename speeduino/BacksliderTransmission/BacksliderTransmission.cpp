@@ -3,7 +3,7 @@
 #include "globals.h"  // This contains the currentStatus struct
 
 // Debug flag for this module
-static bool debugEnabled = false;
+bool debugEnabled = false;
 
 // Debug helper function
 void debugTable2D(const char* tableName, table2D* table, float input) {
