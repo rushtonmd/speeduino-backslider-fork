@@ -6,7 +6,7 @@
 extern bool debugEnabled;
 
 // VSS configuration
-static const float VSS_PULSES_PER_KM = 1242.0; // Calibrated for 33 Hz = 60 km/h
+static const float VSS_PULSES_PER_KM = 1242.0; // so 1242 pulses per km comes out right... but it breaks at low speeds on the ardustim
 static const unsigned long MIN_PULSE_INTERVAL = 10000; // Minimum pulse interval in microseconds to prevent noise
 static const float SMOOTHING_FACTOR = 0.3; // Adjust this value between 0.0 and 1.0 (lower = smoother)
 static const float LOW_SPEED_THRESHOLD = 8.0; // Hz or equivalent speed (~23 kph)

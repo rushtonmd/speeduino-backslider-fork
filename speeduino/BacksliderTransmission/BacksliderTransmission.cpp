@@ -3,7 +3,7 @@
 #include "globals.h"  // This contains the currentStatus struct
 
 // Debug flag for this module
-static bool debugEnabled = true;
+static bool debugEnabled = false;
 
 // Debug helper function
 void debugTable2D(const char* tableName, table2D* table, float input) {
@@ -111,14 +111,14 @@ void initTransmission() {
             configPageTransmission.shift1_2_down_vss[i] = configPage10.knock_window_dur[i];
         }
         
-        // 2-3 Shift Curve
+        // 2-3 Shift Curve fuelTempValues
         for(byte i = 0; i < 6; i++) {
             // TPS points (using flexBoostBins)
-            configPageTransmission.shift2_3_up_tps[i] = configPage10.flexBoostBins[i];
-            configPageTransmission.shift2_3_down_tps[i] = configPage10.flexBoostBins[i];
+            configPageTransmission.shift2_3_up_tps[i] = configPage10.fuelTempValues[i];
+            configPageTransmission.shift2_3_down_tps[i] = configPage10.fuelTempValues[i];
             
             // VSS points for upshift (using flexBoostAdj)
-            configPageTransmission.shift2_3_up_vss[i] = configPage10.fuelTempValues[i];
+            configPageTransmission.shift2_3_up_vss[i] = configPage10.flexBoostBins[i];
                      
             // VSS points for downshift (using flexFuelBins)
             configPageTransmission.shift2_3_down_vss[i] = configPage10.flexFuelBins[i];
@@ -127,11 +127,11 @@ void initTransmission() {
         // 3-4 Shift Curve
         for(byte i = 0; i < 6; i++) {
             // TPS points (using flexBoostBins)
-            configPageTransmission.shift3_4_up_tps[i] = configPage10.flexFuelAdj[i];
-            configPageTransmission.shift3_4_down_tps[i] = configPage10.flexFuelAdj[i];
+            configPageTransmission.shift3_4_up_tps[i] = configPage10.flexAdvBins[i];
+            configPageTransmission.shift3_4_down_tps[i] = configPage10.flexAdvBins[i];
             
             // VSS points for upshift (using flexBoostAdj)
-            configPageTransmission.shift3_4_up_vss[i] = configPage10.flexAdvBins[i];
+            configPageTransmission.shift3_4_up_vss[i] = configPage10.flexFuelAdj[i];
             
             // VSS points for downshift (using flexFuelBins)
             configPageTransmission.shift3_4_down_vss[i] = configPage10.flexAdvAdj[i];
