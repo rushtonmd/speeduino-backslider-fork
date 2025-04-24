@@ -2,6 +2,12 @@
 #include "globals.h"
 
 void initVSS() {
+
+    // configPage2.vssPulsesPerKm
+    // configPage2.vssSmoothing
+    // configPage2.vssAuxCh
+    // configPage1.vssPin
+
   // Clean up any existing interrupts on pin 21
   detachInterrupt(digitalPinToInterrupt(21));
   // Set up VSS interrupt with hard coded pin 21

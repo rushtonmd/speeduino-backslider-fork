@@ -1242,8 +1242,10 @@ void initialiseAll(void)
     readCLT(false); // Need to read coolant temp to make priming pulsewidth work correctly. The false here disables use of the filter
     readTPS(false); // Need to read tps to detect flood clear state
 
+    // TRANSMISSION MOD START 
     // Initialize transmission if enabled
     initTransmission();
+    // TRANSMISSION MOD END
 
     /* tacho sweep function. */
     currentStatus.tachoSweepEnabled = (configPage2.useTachoSweep > 0);
@@ -2336,10 +2338,11 @@ void setPinMapping(byte boardID)
         pinSpareTemp1 = A16; 
         pinSpareTemp2 = A17;
 
-        pinTrigger = 20; //The CAS pin
+       
 
         // TRANSMISSION MOD TESTING START 
-        // I need to se the cam trigger to something besides 21 otherwise the transmission vss won't work
+        // I need to se the crank/cam triggers to an unused pin otherwise the transmission vss won't work
+        pinTrigger = 34; //The CAS pin
         pinTrigger2 = 34; //The Cam Sensor pin
         // TRANSMISSION MOD TESTING END
         pinTrigger3 = 34; //Uses one of the protected spare digital inputs.
