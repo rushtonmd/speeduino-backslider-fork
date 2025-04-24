@@ -1243,7 +1243,7 @@ void initialiseAll(void)
     readTPS(false); // Need to read tps to detect flood clear state
 
     // TRANSMISSION MOD START 
-    // Initialize transmission if enabled
+    // Initialize transmission if enabled, this overrides some previous Speeduino code so it needs to be called last
     initTransmission();
     // TRANSMISSION MOD END
 
