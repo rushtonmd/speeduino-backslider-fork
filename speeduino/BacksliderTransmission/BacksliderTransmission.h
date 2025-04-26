@@ -46,6 +46,11 @@ struct configTransmission {
     uint8_t canTPSIndex;     // Index in currentStatus.canin[] for TPS
     uint8_t canMAPIndex;     // Index in currentStatus.canin[] for MAP
     uint8_t canCLTIndex;     // Index in currentStatus.canin[] for Coolant Temp
+
+    // Gear Selector from TPS Analog Input
+    uint8_t gearSelector_tps[8];    // Gear selector points for 1-2 upshift
+    uint8_t gearSelector_target[8];    // TPS points for 1-2 upshift
+
     
     // Shift points (VSS vs TPS)
     uint16_t shift1_2_up_vss[6];    // VSS points for 1-2 upshift

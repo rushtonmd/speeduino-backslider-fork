@@ -1,6 +1,8 @@
 #include "BacksliderTransmission.h"
 #include "VSSHandler.h"
 #include "globals.h"  // This contains the currentStatus struct
+#include "pages.h"    // For getPageValue
+#include <EEPROM.h>   // For EEPROM access
 
 // Debug flag for this module
 bool debugEnabled = false;
@@ -11,6 +13,8 @@ void debugTable2D(const char* tableName, table2D* table, float input) {
     
     Serial.print("Table ");
     Serial.print(tableName);
+    Serial.print(" and size of ");
+    Serial.print(table->xSize);
     Serial.print(" lookup with input ");
     Serial.print(input);
     Serial.print(" -> ");
@@ -62,8 +66,13 @@ static const uint16_t SHIFT_DELAY = 500; // 500ms shift delay
 static byte* const currentGear = &currentStatus.gear;
 static byte* const gearSelector = &currentStatus.airConStatus;
 
+// Gear selector tables
+static table2D gearSelector_table;
+
 // Helper functions for cleaner code
 static inline GearSelector getGearSelector() {
+    byte currentGearSelector = currentStatus.tpsADC;
+    debugTable2D("Gear selector", &gearSelector_table, currentGearSelector);
     return GearSelector::DRIVE;
     //return static_cast<GearSelector>(*gearSelector);
 }
@@ -76,6 +85,8 @@ static inline void setCurrentGear(CurrentGear gear) {
     *currentGear = static_cast<byte>(gear);
 }
 
+
+
 // Shift curve tables
 static table2D shift1_2_up_table;
 static table2D shift1_2_down_table;
@@ -84,8 +95,37 @@ static table2D shift2_3_down_table;
 static table2D shift3_4_up_table;
 static table2D shift3_4_down_table;
 
+// Function to read and output EEPROM values
+void dumpEEPROM(uint16_t startAddr, uint16_t endAddr) {
+    if (!debugEnabled) return;
+    
+    Serial.println("\nEEPROM Dump:");
+    Serial.print("Start Address: 0x");
+    Serial.print(startAddr, HEX);
+    Serial.print(" End Address: 0x");
+    Serial.println(endAddr, HEX);
+    
+    for (uint16_t addr = startAddr; addr <= endAddr; addr++) {
+        if ((addr - startAddr) % 16 == 0) {
+            Serial.println();
+            Serial.print("0x");
+            Serial.print(addr, HEX);
+            Serial.print(": ");
+        }
+        
+        byte value = EEPROM.read(addr);
+        if (value < 16) Serial.print("0"); // Pad single digit hex values
+        Serial.print(value, HEX);
+        Serial.print(" ");
+    }
+    Serial.println("\n");
+}
+
 void initTransmission() {
     if (configPageTransmission.enableTransmission) {
+        // Dump EEPROM values for debugging
+
+        
         // Initialize PWM outputs for shift solenoids
         pinMode(configPageTransmission.shiftSolenoid1Pin, OUTPUT);
         pinMode(configPageTransmission.shiftSolenoid2Pin, OUTPUT);
@@ -96,6 +136,18 @@ void initTransmission() {
         
         // Initialize VSS
         initVSS();
+
+        // Calculate gear selector value from TPS analog input  
+        for(byte i = 0; i < 8; i++) {
+            // TPS points (using flexBoostBins)
+            configPageTransmission.gearSelector_tps[i] = getPageValue(15, 64 + i);
+            //configPageTransmission.gearSelector_tps[i] = configPage15.rpmBinsDutyLookup[i];
+            configPageTransmission.gearSelector_target[i] = getPageValue(15, 72 + i);
+            //configPageTransmission.gearSelector_target[i] = configPage15.loadBinsDutyLookup[i];
+
+            // VSS points for downshift (using flexFuelBins)
+            //configPageTransmission.gearSelector_tps[i] = getPageValue(15, 64 + i);
+        }
         
         // Build shift curves using flex fuel/boost tables
         // 1-2 Shift Curve
@@ -137,6 +189,10 @@ void initTransmission() {
             configPageTransmission.shift3_4_down_vss[i] = configPage10.flexAdvAdj[i];
         }
         
+        // Construct 2D tables for gear selector
+        construct2dTable(gearSelector_table, 8, configPageTransmission.gearSelector_target, configPageTransmission.gearSelector_tps);
+
+
         // Construct 2D tables for shift curves
         construct2dTable(shift1_2_up_table, 6, configPageTransmission.shift1_2_up_vss, configPageTransmission.shift1_2_up_tps);
         construct2dTable(shift1_2_down_table, 6, configPageTransmission.shift1_2_down_vss, configPageTransmission.shift1_2_down_tps);
@@ -155,21 +211,42 @@ void initTransmission() {
 void updateTransmission() {
     // Update VSS speed calculation
     updateVSS();
+
+
     
     // Get current engine parameters from CAN inputs
     byte currentTPS = currentStatus.canin[configPageTransmission.canTPSIndex];
     byte currentMAP = currentStatus.canin[configPageTransmission.canMAPIndex];
     byte currentCLT = currentStatus.canin[configPageTransmission.canCLTIndex];
+    byte currentGearSelector = currentStatus.tpsADC;
 
     // Update transmission state based on current parameters
     if (getGearSelector() == GearSelector::DRIVE) {
         if(debugEnabled) {  
+
+            
             Serial.println("Trying to shift!");
             Serial.print("Current VSS: ");
             Serial.println(currentStatus.vss);
             Serial.print("Current gear: ");
             Serial.print((int)getCurrentGear());
             Serial.println();
+Serial.println("******************************");
+        Serial.print("Page 15 Start:");
+        dumpEEPROM(0, 4000); // Dump EEPROM from address 3199 to 3457
+    for(byte i = 0; i < 191; i++) {
+            // TPS points (using flexBoostBins)
+            
+            //Serial.println(getPageValue(15, i));
+           
+            //configPageTransmission.gearSelector_target[i] = getPageValue(15, 72 + i);
+            //configPageTransmission.gearSelector_target[i] = configPage15.loadBinsDutyLookup[i];
+
+            // VSS points for downshift (using flexFuelBins)
+            //configPageTransmission.gearSelector_tps[i] = getPageValue(15, 64 + i);
+        }
+         Serial.println("-------------------------------");
+
         }
         
         // Check for upshifts using the 2D tables

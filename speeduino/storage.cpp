@@ -358,7 +358,7 @@ void resetConfigPages(void)
  * @param pLast - End memory address
  */
 static inline eeprom_address_t load_range(eeprom_address_t address, byte *pFirst, const byte *pLast)
-{
+{ 
 #if defined(CORE_AVR)
   // The generic code in the #else branch works but this provides a 45% speed up on AVR
   size_t size = pLast-pFirst;

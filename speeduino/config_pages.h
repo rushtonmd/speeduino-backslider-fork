@@ -957,6 +957,13 @@ Page 15 - second page for VVT and boost control.
 256 bytes long. 
 */
 struct config15 {
+
+  // TRANSMISSION MOD TESTING START
+  // I'm going to try and add these two arrays and HOPEFULLY the config loads correctly
+  //byte rpmBinsDutyLookup[8]; 
+  //byte loadBinsDutyLookup[8]; 
+  // TRANSMISSION MOD TESTING END
+
   byte boostControlEnable : 1; 
   byte unused15_1 : 7; //7bits unused
   byte boostDCWhenDisabled;
