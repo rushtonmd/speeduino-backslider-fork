@@ -1008,3 +1008,70 @@ struct config15 {
 #else
   } __attribute__((packed,aligned(__alignof__(uint16_t)))); //The 32 bit systems require all structs to be fully packed, aligned to their largest member type 
 #endif
+
+/** Page 16 of the config - Transmission control configuration
+ * See the ini file for further reference.
+ */
+struct config16 {
+  // 6 byte arrays that are 6 bytes long
+  byte shift1_2_up_vss[6];    // VSS points for 1-2 upshift
+  byte shift1_2_up_tps[6];    // TPS points for 1-2 upshift
+  byte shift1_2_down_vss[6];  // VSS points for 1-2 downshift
+  byte shift1_2_down_tps[6];  // TPS points for 1-2 downshift
+  byte shift2_3_up_vss[6];    // VSS points for 2-3 upshift
+  byte shift2_3_up_tps[6];    // TPS points for 2-3 upshift
+
+  // 2 byte arrays that are 8 bytes long
+  byte shift2_3_down_vss[8];  // VSS points for 2-3 downshift
+  byte shift2_3_down_tps[8];  // TPS points for 2-3 downshift
+
+  // Single bytes for gears and solenoid status
+  byte currentGear;           // Current gear (0=PARK, 1=REVERSE, 2=NEUTRAL, 3=FIRST, 4=SECOND, 5=THIRD, 6=FOURTH)
+  // byte targetGear;            // Target gear for shifting
+  // byte shiftSolenoid1Status;  // Status of shift solenoid 1
+  // byte shiftSolenoid2Status;  // Status of shift solenoid 2
+  // byte shiftSolenoid3Status;  // Status of shift solenoid 3
+  // byte shiftSolenoid4Status;  // Status of shift solenoid 4
+  // byte shiftSolenoid5Status;  // Status of shift solenoid 5
+  // byte shiftSolenoid6Status;  // Status of shift solenoid 6
+
+  // // Additional configuration bytes
+  // byte enableTransmission : 1;  // Whether transmission control is enabled
+  // byte unused16_1 : 7;         // 7 bits unused
+
+  // // CAN configuration
+  // byte canBaudRate;           // CAN bus baud rate
+  // byte canAddress;            // CAN address for this module
+
+  // // PWM output pins for shift solenoids
+  // byte shiftSolenoid1Pin : 6;  // Pin for shift solenoid 1
+  // byte unused16_2 : 2;         // 2 bits unused
+  // byte shiftSolenoid2Pin : 6;  // Pin for shift solenoid 2
+  // byte unused16_3 : 2;         // 2 bits unused
+  // byte shiftSolenoid3Pin : 6;  // Pin for shift solenoid 3
+  // byte unused16_4 : 2;         // 2 bits unused
+  // byte shiftSolenoid4Pin : 6;  // Pin for shift solenoid 4
+  // byte unused16_5 : 2;         // 2 bits unused
+  // byte shiftSolenoid5Pin : 6;  // Pin for shift solenoid 5
+  // byte unused16_6 : 2;         // 2 bits unused
+  // byte shiftSolenoid6Pin : 6;  // Pin for shift solenoid 6
+  // byte unused16_7 : 2;         // 2 bits unused
+
+  // // CAN input aliases
+  // byte canRPMIndex;           // Index in currentStatus.canin[] for RPM
+  // byte canTPSIndex;           // Index in currentStatus.canin[] for TPS
+  // byte canMAPIndex;           // Index in currentStatus.canin[] for MAP
+  // byte canCLTIndex;           // Index in currentStatus.canin[] for Coolant Temp
+
+  // // Gear Selector from TPS Analog Input
+  // byte gearSelector_tps[8];    // Gear selector points for 1-2 upshift
+  // byte gearSelector_target[8]; // TPS points for 1-2 upshift
+
+  // Padding to make struct exactly 150 bytes
+  byte unused16_padding[97];   // Padding to make struct exactly 150 bytes
+
+#if defined(CORE_AVR)
+  };
+#else
+  } __attribute__((packed,aligned(__alignof__(uint16_t)))); //The 32 bit systems require all structs to be fully packed, aligned to their largest member type 
+#endif

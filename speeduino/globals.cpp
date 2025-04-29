@@ -237,6 +237,7 @@ struct config9 configPage9;
 struct config10 configPage10;
 struct config13 configPage13;
 struct config15 configPage15;
+struct config16 configPage16;
 
 //byte cltCalibrationTable[CALIBRATION_TABLE_SIZE]; /**< An array containing the coolant sensor calibration values */
 //byte iatCalibrationTable[CALIBRATION_TABLE_SIZE]; /**< An array containing the inlet air temperature sensor calibration values */
@@ -250,7 +251,7 @@ uint16_t iatCalibration_values[32];
 struct table2D iatCalibrationTable;
 uint16_t o2Calibration_bins[32];
 uint8_t o2Calibration_values[32];
-struct table2D o2CalibrationTable; 
+struct table2D o2CalibrationTable;
 
 //These function do checks on a pin to determine if it is already in use by another (higher importance) active function
 bool pinIsOutput(byte pin)

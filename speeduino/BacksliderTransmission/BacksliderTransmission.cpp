@@ -154,7 +154,7 @@ void initTransmission() {
         for(byte i = 0; i < 6; i++) {
             // TPS points (using flexBoostBins)
             configPageTransmission.shift1_2_up_tps[i] = configPage10.knock_window_rpms[i];
-            configPageTransmission.shift1_2_down_tps[i] = configPage10.knock_window_rpms[i];
+            configPageTransmission.shift1_2_down_tps[i] = configPage10.knock_window_rpms[i]; 
             
             // VSS points for upshift (using flexBoostAdj)
             configPageTransmission.shift1_2_up_vss[i] = configPage10.knock_window_angle[i];

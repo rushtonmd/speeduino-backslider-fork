@@ -183,7 +183,11 @@ void initialiseAll(void)
     {
       //First time running on this board
       resetConfigPages();
-      setPinMapping(3); //Force board to v0.4
+      // TRANSMISSION MOD TESTING START 
+      // This needs to be set to DropBear otherwise saving to eeprom will fail
+      // I need to figure out why this is happening, and map the pins for the transmisison control.
+      setPinMapping(55); //Force board to dropbear
+      // TRANSMISSION MOD TESTING END
     }
     else { setPinMapping(configPage2.pinMapping); }
 

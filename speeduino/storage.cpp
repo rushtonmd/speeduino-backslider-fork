@@ -325,6 +325,14 @@ void writeConfig(uint8_t pageNum)
       result = write_range((byte *)&configPage15, (byte *)&configPage15+sizeof(configPage15), result.changeWriteAddress(EEPROM_CONFIG15_START));
       break;
 
+    case transmissionPage:
+      /*---------------------------------------------------
+      | Config page 16 (See storage.h for data layout)
+      | 150 byte long config table for transmission control
+      -----------------------------------------------------*/
+      result = write_range((byte *)&configPage16, (byte *)&configPage16+sizeof(configPage16), result.changeWriteAddress(EEPROM_CONFIG16_START));
+      break;
+
     default:
       break;
   }
@@ -417,6 +425,12 @@ void loadConfig(void)
 {
   loadTable(&fuelTable, decltype(fuelTable)::type_key, EEPROM_CONFIG1_MAP);
   load_range(EEPROM_CONFIG2_START, (byte *)&configPage2, (byte *)&configPage2+sizeof(configPage2));
+
+  // TRANSMISSION MOD TESTING START
+  // This needs to be set to DropBear otherwise saving to eeprom will fail
+  // I need to figure out why this is happening, and map the pins for the transmisison control.
+  configPage2.pinMapping = 55;
+  // TRANSMISSION MOD TESTING END
   
   //*********************************************************************************************************************************************************************************
   //IGNITION CONFIG PAGE (2)
@@ -479,6 +493,10 @@ void loadConfig(void)
   //CONFIG PAGE (15) + boost duty lookup table (LUT)
   loadTable(&boostTableLookupDuty, decltype(boostTableLookupDuty)::type_key, EEPROM_CONFIG15_MAP);
   load_range(EEPROM_CONFIG15_START, (byte *)&configPage15, (byte *)&configPage15+sizeof(configPage15));  
+
+  //*********************************************************************************************************************************************************************************
+  //CONFIG PAGE (16)
+  load_range(EEPROM_CONFIG16_START, (byte *)&configPage16, (byte *)&configPage16+sizeof(configPage16));
 
   //*********************************************************************************************************************************************************************************
 }

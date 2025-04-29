@@ -186,7 +186,9 @@ extern uint32_t deferEEPROMWritesUntil;
 #define EEPROM_CONFIG15_START 3281
 #define EEPROM_CONFIG15_END   3457
 
-
+//Page 16 added for transmission control (150 bytes)
+#define EEPROM_CONFIG16_START 3457
+#define EEPROM_CONFIG16_END   3607
 
 #define EEPROM_CALIBRATION_CLT_CRC  3674
 #define EEPROM_CALIBRATION_IAT_CRC  3678
