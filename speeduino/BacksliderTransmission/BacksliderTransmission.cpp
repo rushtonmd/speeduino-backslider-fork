@@ -97,28 +97,28 @@ static table2D shift3_4_down_table;
 
 // Function to read and output EEPROM values
 void dumpEEPROM(uint16_t startAddr, uint16_t endAddr) {
-    if (!debugEnabled) return;
+    // if (!debugEnabled) return;
     
-    Serial.println("\nEEPROM Dump:");
-    Serial.print("Start Address: 0x");
-    Serial.print(startAddr, HEX);
-    Serial.print(" End Address: 0x");
-    Serial.println(endAddr, HEX);
+    // Serial.println("\nEEPROM Dump:");
+    // Serial.print("Start Address: 0x");
+    // Serial.print(startAddr, HEX);
+    // Serial.print(" End Address: 0x");
+    // Serial.println(endAddr, HEX);
     
-    for (uint16_t addr = startAddr; addr <= endAddr; addr++) {
-        if ((addr - startAddr) % 16 == 0) {
-            Serial.println();
-            Serial.print("0x");
-            Serial.print(addr, HEX);
-            Serial.print(": ");
-        }
+    // for (uint16_t addr = startAddr; addr <= endAddr; addr++) {
+    //     if ((addr - startAddr) % 16 == 0) {
+    //         Serial.println();
+    //         Serial.print("0x");
+    //         Serial.print(addr, HEX);
+    //         Serial.print(": ");
+    //     }
         
-        byte value = EEPROM.read(addr);
-        if (value < 16) Serial.print("0"); // Pad single digit hex values
-        Serial.print(value, HEX);
-        Serial.print(" ");
-    }
-    Serial.println("\n");
+    //     byte value = EEPROM.read(addr);
+    //     if (value < 16) Serial.print("0"); // Pad single digit hex values
+    //     Serial.print(value, HEX);
+    //     Serial.print(" ");
+    // }
+    // Serial.println("\n");
 }
 
 void initTransmission() {
@@ -229,32 +229,32 @@ void updateTransmission() {
 
     // Update transmission state based on current parameters
     if (getGearSelector() == GearSelector::DRIVE) {
-        if(false) {  
+        // if(false) {  
 
             
-            Serial.println("Trying to shift!");
-            Serial.print("Current VSS: ");
-            Serial.println(currentStatus.vss);
-            Serial.print("Current gear: ");
-            Serial.print((int)getCurrentGear());
-            Serial.println();
-            Serial.println("******************************");
-        Serial.print("Page 15 Start:");
-        dumpEEPROM(0, 4000); // Dump EEPROM from address 3199 to 3457
-        for(byte i = 0; i < 191; i++) {
-            // TPS points (using flexBoostBins)
+        //     Serial.println("Trying to shift!");
+        //     Serial.print("Current VSS: ");
+        //     Serial.println(currentStatus.vss);
+        //     Serial.print("Current gear: ");
+        //     Serial.print((int)getCurrentGear());
+        //     Serial.println();
+        //     Serial.println("******************************");
+        // Serial.print("Page 15 Start:");
+        // dumpEEPROM(0, 4000); // Dump EEPROM from address 3199 to 3457
+        // for(byte i = 0; i < 191; i++) {
+        //     // TPS points (using flexBoostBins)
             
-            //Serial.println(getPageValue(15, i));
+        //     //Serial.println(getPageValue(15, i));
            
-            //configPageTransmission.gearSelector_target[i] = getPageValue(15, 72 + i);
-            //configPageTransmission.gearSelector_target[i] = configPage15.loadBinsDutyLookup[i];
+        //     //configPageTransmission.gearSelector_target[i] = getPageValue(15, 72 + i);
+        //     //configPageTransmission.gearSelector_target[i] = configPage15.loadBinsDutyLookup[i];
 
-            // VSS points for downshift (using flexFuelBins)
-            //configPageTransmission.gearSelector_tps[i] = getPageValue(15, 64 + i);
-        }
-         Serial.println("-------------------------------");
+        //     // VSS points for downshift (using flexFuelBins)
+        //     //configPageTransmission.gearSelector_tps[i] = getPageValue(15, 64 + i);
+        // }
+        //  Serial.println("-------------------------------");
 
-        }
+        // }
         
         // Check for upshifts using the 2D tables
         switch (getCurrentGear()) {
