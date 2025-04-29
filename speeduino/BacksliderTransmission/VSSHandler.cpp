@@ -36,10 +36,10 @@ extern bool debugEnabled;
 void initVSS() {
     // Clean up any existing interrupts on the VSS pin
     // temp testing pinVSS
-    detachInterrupt(digitalPinToInterrupt(31));
+    detachInterrupt(digitalPinToInterrupt(pinVSS));
     
     // Set up VSS interrupt
-    pinMode(31, INPUT);
+    pinMode(pinVSS, INPUT);
     
     // Initialize variables
     lastPulseTimeMicros = 0;
@@ -50,7 +50,7 @@ void initVSS() {
     bufferFull = false;
     
     // Attach interrupt on rising edge
-    attachInterrupt(digitalPinToInterrupt(31), vssInterrupt, RISING);
+    attachInterrupt(digitalPinToInterrupt(pinVSS), vssInterrupt, RISING);
 }
 
 void vssInterrupt() {
