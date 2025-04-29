@@ -2299,7 +2299,7 @@ void setPinMapping(byte boardID)
       pinFuelPump = 8; //Fuel pump output
       pinVVT_1 = 28; //Default VVT output
       pinStepperDir = 32; //Direction pin  for DRV8825 driver
-      pinStepperStep = 31; //Step pin for DRV8825 driver
+      pinStepperStep = 34; //Step pin for DRV8825 driver
       pinStepperEnable = 30; //Enable pin for DRV8825 driver
       pinBoost = 24; //Boost control
       pinSpareLOut1 = 29; //low current output spare1
@@ -2344,6 +2344,7 @@ void setPinMapping(byte boardID)
         // I need to se the crank/cam triggers to an unused pin otherwise the transmission vss won't work
         pinTrigger = 34; //The CAS pin
         pinTrigger2 = 34; //The Cam Sensor pin
+        pinCoil1 = 34;
         // TRANSMISSION MOD TESTING END
         pinTrigger3 = 34; //Uses one of the protected spare digital inputs.
 

@@ -35,10 +35,11 @@ extern bool debugEnabled;
 
 void initVSS() {
     // Clean up any existing interrupts on the VSS pin
-    detachInterrupt(digitalPinToInterrupt(pinVSS));
+    // temp testing pinVSS
+    detachInterrupt(digitalPinToInterrupt(31));
     
     // Set up VSS interrupt
-    pinMode(pinVSS, INPUT);
+    pinMode(31, INPUT);
     
     // Initialize variables
     lastPulseTimeMicros = 0;
@@ -49,7 +50,7 @@ void initVSS() {
     bufferFull = false;
     
     // Attach interrupt on rising edge
-    attachInterrupt(digitalPinToInterrupt(pinVSS), vssInterrupt, RISING);
+    attachInterrupt(digitalPinToInterrupt(31), vssInterrupt, RISING);
 }
 
 void vssInterrupt() {
@@ -63,6 +64,11 @@ void vssInterrupt() {
         lastValidPulseTime = millis();
         newPulseAvailable = true;
     }
+
+    // if (debugEnabled) {
+    //     Serial.print("Pulse interval: ");
+    //     Serial.println(pulseInterval);
+    // }
 }
 
 // Advanced smoothing function with adaptive behavior
@@ -219,21 +225,21 @@ void updateVSS() {
     currentStatus.vss = constrain((uint16_t)smoothedSpeed, 0, 255);
     
     // Debug output
-    if(debugEnabled) {
-        static unsigned long lastDebugTime = 0;
-        if (millis() - lastDebugTime > 100) { // Limit debug output frequency
-            Serial.print("Raw: ");
-            Serial.print(rawSpeed, 1);
-            Serial.print(" km/h, Smoothed: ");
-            Serial.print(smoothedSpeed, 1);
-            Serial.print(" km/h, Accel: ");
-            Serial.print(acceleration, 1);
-            Serial.print(" km/h/s, Smoothing: ");
-            Serial.print(configPage2.vssSmoothing);
-            Serial.print("/255 (");
-            Serial.print((configPage2.vssSmoothing * 100) / 255);
-            Serial.println("%)");
-            lastDebugTime = millis();
-        }
-    }
+    // if(debugEnabled) {
+    //     static unsigned long lastDebugTime = 0;
+    //     if (millis() - lastDebugTime > 100) { // Limit debug output frequency
+    //         Serial.print("Raw: ");
+    //         Serial.print(rawSpeed, 1);
+    //         Serial.print(" km/h, Smoothed: ");
+    //         Serial.print(smoothedSpeed, 1);
+    //         Serial.print(" km/h, Accel: ");
+    //         Serial.print(acceleration, 1);
+    //         Serial.print(" km/h/s, Smoothing: ");
+    //         Serial.print(configPage2.vssSmoothing);
+    //         Serial.print("/255 (");
+    //         Serial.print((configPage2.vssSmoothing * 100) / 255);
+    //         Serial.println("%)");
+    //         lastDebugTime = millis();
+    //     }
+    // }
 }

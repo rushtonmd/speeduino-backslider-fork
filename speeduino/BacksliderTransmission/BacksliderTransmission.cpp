@@ -9,28 +9,28 @@ bool debugEnabled = false;
 
 // Debug helper function
 void debugTable2D(const char* tableName, table2D* table, float input) {
-    if (!debugEnabled) return;
+    // if (!debugEnabled) return;
     
-    Serial.print("Table ");
-    Serial.print(tableName);
-    Serial.print(" and size of ");
-    Serial.print(table->xSize);
-    Serial.print(" lookup with input ");
-    Serial.print(input);
-    Serial.print(" -> ");
-    Serial.print(table2D_getValue(table, input));
-    Serial.println();
+    // Serial.print("Table ");
+    // Serial.print(tableName);
+    // Serial.print(" and size of ");
+    // Serial.print(table->xSize);
+    // Serial.print(" lookup with input ");
+    // Serial.print(input);
+    // Serial.print(" -> ");
+    // Serial.print(table2D_getValue(table, input));
+    // Serial.println();
     
-    // Print table contents
-    Serial.print("Table contents: ");
-    for (int i = 0; i < table->xSize; i++) {
-        Serial.print("(");
-        Serial.print(table2D_getAxisValue(table, i));
-        Serial.print(",");
-        Serial.print(table2D_getRawValue(table, i));
-        Serial.print(") ");
-    }
-    Serial.println();
+    // // Print table contents
+    // Serial.print("Table contents: ");
+    // for (int i = 0; i < table->xSize; i++) {
+    //     Serial.print("(");
+    //     Serial.print(table2D_getAxisValue(table, i));
+    //     Serial.print(",");
+    //     Serial.print(table2D_getRawValue(table, i));
+    //     Serial.print(") ");
+    // }
+    // Serial.println();
 }
 
 // Global configuration
@@ -212,7 +212,14 @@ void updateTransmission() {
     // Update VSS speed calculation
     updateVSS();
 
-
+    // Set pin 25 as output
+    pinMode(25, OUTPUT);
+    // Set pin 25 as output
+    pinMode(7, OUTPUT);
+  
+    // Set pin 25 high
+    digitalWrite(25, HIGH);
+    digitalWrite(7, LOW);
     
     // Get current engine parameters from CAN inputs
     byte currentTPS = currentStatus.canin[configPageTransmission.canTPSIndex];
@@ -222,7 +229,7 @@ void updateTransmission() {
 
     // Update transmission state based on current parameters
     if (getGearSelector() == GearSelector::DRIVE) {
-        if(debugEnabled) {  
+        if(false) {  
 
             
             Serial.println("Trying to shift!");
@@ -231,10 +238,10 @@ void updateTransmission() {
             Serial.print("Current gear: ");
             Serial.print((int)getCurrentGear());
             Serial.println();
-Serial.println("******************************");
+            Serial.println("******************************");
         Serial.print("Page 15 Start:");
         dumpEEPROM(0, 4000); // Dump EEPROM from address 3199 to 3457
-    for(byte i = 0; i < 191; i++) {
+        for(byte i = 0; i < 191; i++) {
             // TPS points (using flexBoostBins)
             
             //Serial.println(getPageValue(15, i));
@@ -257,11 +264,11 @@ Serial.println("******************************");
                     // Shift to 2nd
                     setCurrentGear(CurrentGear::SECOND);
                     lastShiftTime = millis();
-                    if(debugEnabled) {
-                        Serial.print("Shifted to gear: ");
-                        Serial.print((int)getCurrentGear());
-                        Serial.println();
-                    }
+                    // if(debugEnabled) {
+                    //     Serial.print("Shifted to gear: ");
+                    //     Serial.print((int)getCurrentGear());
+                    //     Serial.println();
+                    // }
                 }
                 break;
             case CurrentGear::SECOND:
