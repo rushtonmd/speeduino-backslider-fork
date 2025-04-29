@@ -334,3 +334,40 @@ defaultValue = knock_window_dur, 15 25 35 45 55 65      ; Downshift speeds
    - Duration → KPH for downshift speed
 3. Default values provide a reasonable starting point for shift points
 4. The curve editor allows visualization of both upshift and downshift points on the same graph 
+
+I'll help you commit the changes with a descriptive tag. First, let's check the status and then commit:
+
+
+
+
+```bash
+git status
+```
+Now let's add all the modified files and commit with a tag:
+
+
+
+
+```bash
+git add . && git commit -m "Added page 16 and it's loading and saving correctly in tuner studio" && git tag -a "page16-working" -m "Added page 16 and it's loading and saving correctly in tuner studio"
+```
+Great! The changes have been committed and tagged. Here's what was done:
+
+1. Added all modified files to staging
+2. Created a commit with the message "Added page 16 and it's loading and saving correctly in tuner studio"
+3. Created an annotated tag "page16-working" with the same message
+
+The commit includes changes to 11 files:
+- reference/backslider-trans.ini
+- speeduino/BacksliderTransmission/BacksliderTransmission.cpp
+- speeduino/config_pages.h
+- speeduino/globals.cpp
+- speeduino/globals.h
+- speeduino/init.cpp
+- speeduino/pages.cpp
+- speeduino/pages.h
+- speeduino/speeduino.ino
+- speeduino/storage.cpp
+- speeduino/storage.h
+
+Would you like me to help you with anything else?
