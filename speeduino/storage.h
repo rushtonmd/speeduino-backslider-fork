@@ -183,16 +183,7 @@ extern uint32_t deferEEPROMWritesUntil;
 
 //Page 15 added after OUT OF ORDER page 8
 #define EEPROM_CONFIG15_MAP   3199
-//#define EEPROM_CONFIG15_MAP   3201
-// TRANSMISSION MOD TESTING START   
-//#define EEPROM_CONFIG15_START 3281
-// OK so I'm not exactly sure how to get the bins values to load correctly. They're being
-// saved and loaded from eeprom correctly, but wen trying to load the config the values
-// aren't accessible. I'm going to grab them diretly from memory which is gross. 
-// This is a workaraound, i commented out loading the table and am just grabbing the bin values
-// directly from memory. 
 #define EEPROM_CONFIG15_START 3281
-// TRANSMISSION MOD TESTING END
 #define EEPROM_CONFIG15_END   3457
 
 
