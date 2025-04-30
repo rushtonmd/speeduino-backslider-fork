@@ -64,17 +64,19 @@ static const uint16_t SHIFT_DELAY = 500; // 500ms shift delay
 
 // Local pointers to currentStatus variables for better readability
 static byte* const currentGear = &currentStatus.gear;
-static byte* const gearSelector = &currentStatus.airConStatus;
+//static byte* const gearSelector = &currentStatus.gearSelector;
 
 // Gear selector tables
 static table2D gearSelector_table;
 
 // Helper functions for cleaner code
 static inline GearSelector getGearSelector() {
-    byte currentGearSelector = currentStatus.tpsADC;
-    debugTable2D("Gear selector", &gearSelector_table, currentGearSelector);
-    return GearSelector::DRIVE;
-    //return static_cast<GearSelector>(*gearSelector);
+    int rawValue = analogRead(configPage16.shiftSelector_adc_pin);  // Read from gear selector pin (0-1023)
+    byte currentGearSelector = map(rawValue, 0, 1023, 0, 255);  // Scale to 0-255
+    byte selectedFromTable = static_cast<byte>(table2D_getValue(&gearSelector_table, currentGearSelector));
+    currentStatus.gearSelector_ADC = currentGearSelector;  // Set the currentStatus.gearSelector
+    currentStatus.gearSelectorChosenGear = selectedFromTable;  // Set the currentStatus.gearSelector
+    return static_cast<GearSelector>(selectedFromTable);
 }
 
 static inline CurrentGear getCurrentGear() {
@@ -121,18 +123,41 @@ void dumpEEPROM(uint16_t startAddr, uint16_t endAddr) {
     // Serial.println("\n");
 }
 
+void setTransmissionPins() {
+    // Set all solenoid pins to OUTPUT mode
+    pinMode(configPageTransmission.shiftSolenoid1Pin, OUTPUT);
+    pinMode(configPageTransmission.shiftSolenoid2Pin, OUTPUT);
+    pinMode(configPageTransmission.shiftSolenoid3Pin, OUTPUT);
+    pinMode(configPageTransmission.shiftSolenoid4Pin, OUTPUT);
+    pinMode(configPageTransmission.shiftSolenoid5Pin, OUTPUT);
+    pinMode(configPageTransmission.shiftSolenoid6Pin, OUTPUT);
+    
+    // Initialize all solenoids to OFF state
+    digitalWrite(configPageTransmission.shiftSolenoid1Pin, LOW);
+    digitalWrite(configPageTransmission.shiftSolenoid2Pin, LOW);
+    digitalWrite(configPageTransmission.shiftSolenoid3Pin, LOW);
+    digitalWrite(configPageTransmission.shiftSolenoid4Pin, LOW);
+    digitalWrite(configPageTransmission.shiftSolenoid5Pin, LOW);
+    digitalWrite(configPageTransmission.shiftSolenoid6Pin, LOW);
+
+    // Additional pins (hardcoded for now)
+    // Gear selector input (analog)
+    pinMode(14, INPUT);
+    
+    // Transmission coolant temp sensor input (analog)
+    pinMode(configPage16.shiftSelector_adc_pin, INPUT);
+    
+    // Shift up button input (digital with pullup)
+    pinMode(40, INPUT);
+    
+    // Shift down button input (digital with pullup)
+    pinMode(41, INPUT);
+}
+
 void initTransmission() {
     if (configPageTransmission.enableTransmission) {
-        // Dump EEPROM values for debugging
-
-        
-        // Initialize PWM outputs for shift solenoids
-        pinMode(configPageTransmission.shiftSolenoid1Pin, OUTPUT);
-        pinMode(configPageTransmission.shiftSolenoid2Pin, OUTPUT);
-        pinMode(configPageTransmission.shiftSolenoid3Pin, OUTPUT);
-        pinMode(configPageTransmission.shiftSolenoid4Pin, OUTPUT);
-        pinMode(configPageTransmission.shiftSolenoid5Pin, OUTPUT);
-        pinMode(configPageTransmission.shiftSolenoid6Pin, OUTPUT);
+        // Initialize all transmission pins
+        setTransmissionPins();
         
         // Initialize VSS
         initVSS();
@@ -160,7 +185,7 @@ void initTransmission() {
             configPageTransmission.shift1_2_up_vss[i] = configPage10.knock_window_angle[i];
             
             // VSS points for downshift (using flexFuelBins)
-            configPageTransmission.shift1_2_down_vss[i] = configPage10.knock_window_dur[i];
+            configPageTransmission.shift1_2_down_vss[i] = configPage10.knock_window_dur[i]; 
         }
         
         // 2-3 Shift Curve fuelTempValues
