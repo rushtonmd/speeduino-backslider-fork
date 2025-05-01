@@ -1013,21 +1013,86 @@ struct config15 {
  * See the ini file for further reference.
  */
 struct config16 {
-  // 6 byte arrays that are 6 bytes long
-  byte shift1_2_up_vss[6];    // VSS points for 1-2 upshift
-  byte shift1_2_up_tps[6];    // TPS points for 1-2 upshift
-  byte shift1_2_down_vss[6];  // VSS points for 1-2 downshift
-  byte shift1_2_down_tps[6];  // TPS points for 1-2 downshift
+  // Each gear change has a shift curve in Tuner Studio. 
+  // The shift curve is a list of points that are used to determine the shift points for each gear change.
+  // The points are in the form of VSS and TPS values.
+  // The VSS points are the speed of the vehicle in km/h.
+  // The TPS points are the throttle position in percent.
+  // The shift points are the points on the shift curve that are used to determine the shift points for each gear change. 
+  // Each gear change dialog has 2 separate curves, one for upshifting and one for downshifting.
+
+  // Gear 1 to Gear 2
+  byte shift1_2_tps[6];    // TPS points for 1-2 upshift (horizontal axis)
+  byte shift1_2_up_vss[6];    // VSS points for 1-2 upshift (vertical axis)
+  byte shift1_2_down_vss[6];  // VSS points for 1-2 downshift (vertical axis)
+
+  // Gear 2 to Gear 3 
+  byte shift2_3_tps[6];  // TPS points for 2-3 upshift
   byte shift2_3_up_vss[6];    // VSS points for 2-3 upshift
-  byte shift2_3_up_tps[6];    // TPS points for 2-3 upshift
+  byte shift2_3_down_vss[6];  // VSS points for 2-3 downshift
 
-  // 2 byte arrays that are 8 bytes long
-  byte shift2_3_down_vss[8];  // VSS points for 2-3 downshift
-  byte shift2_3_down_tps[8];  // TPS points for 2-3 downshift
+  // Gear 3 to Gear 4
+  byte shift3_4_tps[6];  // TPS points for 3-4 upshift
+  byte shift3_4_up_vss[6];    // VSS points for 3-4 upshift
+  byte shift3_4_down_vss[6];  // VSS points for 3-4 downshift
 
-  // Single bytes for gears and solenoid status
-  byte currentGear;           // Current gear (0=PARK, 1=REVERSE, 2=NEUTRAL, 3=FIRST, 4=SECOND, 5=THIRD, 6=FOURTH)
-  // byte targetGear;            // Target gear for shifting
+  // Gear Selector (Analog to Digital Converter)
+  byte shiftSelector_adc_pin;  // ADC pin number for gear selector
+  byte shiftSelector_adc[8];  // ADC points for gear selector (horizontal axis)
+  byte shiftSelector_gear[8];  // Gear points for gear selector (vertical axis) 
+
+  // B-parameter equation equation calibration points for temperature. This isn't as fast/efficient as a lookup table, 
+  // but it's more flexible and easier to understand. Also the frequency of temperature changes is fairly slow with relation
+  // to loop speeds, so the difference is negligible.
+  uint16_t trans_temp_sensor_pullup_ohms;                 // 2 bytes - Pullup resistor value
+  byte trans_temp_sensor_pin;                             // 1 byte - ADC pin number
+  uint16_t trans_temp_sensor_calibration_resistance[2];   // 4 bytes - Resistance values (e.g., 10000, 100 ohms)
+  int16_t trans_temp_sensor_calibration_temp[2];          // 4 bytes - Temperatures in Celsius (e.g., 0, 120°C)
+
+  byte trans_line_pressure_pin;                             // 1 byte - ADC pin number
+  byte trans_line_pressure_tps[6];                      // 6 bytes - TPS values
+  byte trans_line_pressure_pwm[6];                      // 6 bytes - Solenoid PWM values (0-255)
+
+  // Lockup solenoid pin, x-asis and y-asis calibration points
+  byte lockup_pin; // Pin number for the lockup solenoid
+  byte lockup_vss; // Speed in km/h when lockup should be engaged
+  byte overrun_pin; // Pin number for the overrun solenoid
+  byte overrun_duration; // Duration of the overrun in milliseconds
+
+  byte shift_solenoid_1_pin; // Pin number for the shift solenoid 1
+  byte shift_solenoid_2_pin; // Pin number for the shift solenoid 2
+  byte shift_solenoid_1_gear_pwm[8]; // PWM values for shift solenoid 1 for each gear
+  byte shift_solenoid_2_gear_pwm[8]; // PWM values for shift solenoid 2 for each gear
+
+
+// Padding to make struct exactly 150 bytes
+  byte unused16_padding[33];   // Padding to make struct exactly 150 bytes
+
+  // NEED TO ADD THE FOLLOWING
+  // paddle shifters pin numbers
+  // paddle shifters delay before switching between manual and auto
+  // I need to add a table of when each shift solenoid should be activated for each gear(Park, Reverse, Neutral, 4th, 3rd, 2nd, 1st)
+  // Park solenoid 1 
+  // Park solenoid 2
+  // Reverse solenoid 1
+  // Reverse solenoid 2
+  // Neutral solenoid 1
+  // Neutral solenoid 2
+  // 4th gear solenoid 1
+  // 4th gear solenoid 2
+  // 3rd gear solenoid 1
+  // 3rd gear solenoid 2
+  // 2nd gear solenoid 1
+  // 2nd gear solenoid 2
+  // 1st gear solenoid 1
+  // 1st gear solenoid 2  
+
+  // Lockup pin, x-asis and y-asis calibration points
+  // Line pressure pin, x-asis and y-asis calibration points
+  // Overrun time during shift in milliseconds
+  
+
+  // byte targetGear;              // Target gear for shifting
   // byte shiftSolenoid1Status;  // Status of shift solenoid 1
   // byte shiftSolenoid2Status;  // Status of shift solenoid 2
   // byte shiftSolenoid3Status;  // Status of shift solenoid 3
@@ -1067,8 +1132,7 @@ struct config16 {
   // byte gearSelector_tps[8];    // Gear selector points for 1-2 upshift
   // byte gearSelector_target[8]; // TPS points for 1-2 upshift
 
-  // Padding to make struct exactly 150 bytes
-  byte unused16_padding[97];   // Padding to make struct exactly 150 bytes
+  
 
 #if defined(CORE_AVR)
   };

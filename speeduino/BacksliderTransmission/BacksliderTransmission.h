@@ -77,6 +77,7 @@ void initTransmission();
 void updateTransmission();
 void sendTransmissionCAN();
 void receiveTransmissionCAN();
+void setTransmissionPins();  // New function to set pin values
 
 // Helper functions for shift curves
 uint16_t getShiftVSS(CurrentGear gearFrom, CurrentGear gearTo, byte tps, bool isUpshift);

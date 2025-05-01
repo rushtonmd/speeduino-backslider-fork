@@ -18,6 +18,8 @@ void initTempSensor(TempSensor* sensor, uint8_t pin, float pullupResistor,
     sensor->r0 = r1;
     
     sensor->lastTemp = 0.0;
+
+    beginTempSensor(sensor);
 }
 
 void beginTempSensor(TempSensor* sensor) {
@@ -29,14 +31,14 @@ uint16_t readRawTemp(TempSensor* sensor) {
 }
 
 float adcToResistance(TempSensor* sensor, uint16_t adcValue) {
-    // Convert ADC reading to voltage
-    float voltage = (adcValue * 3.3) / 4095.0;  // Assuming 3.3V reference and 12-bit ADC
-    
-    // Calculate thermistor resistance using voltage divider equation
-    // R = R1 * (Vcc - V) / V
-    float resistance = sensor->r1 * (3.3 - voltage) / voltage;
-    
-    return resistance;
+  // Convert ADC reading to voltage
+  float voltage = (adcValue * 5.0) / 1023.0;  // 10-bit ADC with 5V reference
+  
+  // Calculate thermistor resistance using voltage divider equation
+  // R_thermistor = R_fixed × (Vin/Vout - 1)
+  float resistance = sensor->r1 * (5.0/voltage - 1);
+  
+  return resistance;
 }
 
 float calculateTemperature(TempSensor* sensor) {

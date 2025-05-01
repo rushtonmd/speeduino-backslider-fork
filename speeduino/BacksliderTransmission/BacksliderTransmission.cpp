@@ -1,5 +1,6 @@
 #include "BacksliderTransmission.h"
 #include "VSSHandler.h"
+#include "TemperatureSensor.h"
 #include "globals.h"  // This contains the currentStatus struct
 #include "pages.h"    // For getPageValue
 #include <EEPROM.h>   // For EEPROM access
@@ -69,6 +70,17 @@ static byte* const currentGear = &currentStatus.gear;
 // Gear selector tables
 static table2D gearSelector_table;
 
+// Shift curve tables
+static table2D shift1_2_up_table;
+static table2D shift1_2_down_table;
+static table2D shift2_3_up_table;
+static table2D shift2_3_down_table;
+static table2D shift3_4_up_table;
+static table2D shift3_4_down_table;
+
+// Temperature sensor instance
+static TempSensor transTempSensor;
+
 // Helper functions for cleaner code
 static inline GearSelector getGearSelector() {
     int rawValue = analogRead(configPage16.shiftSelector_adc_pin);  // Read from gear selector pin (0-1023)
@@ -86,16 +98,6 @@ static inline CurrentGear getCurrentGear() {
 static inline void setCurrentGear(CurrentGear gear) {
     *currentGear = static_cast<byte>(gear);
 }
-
-
-
-// Shift curve tables
-static table2D shift1_2_up_table;
-static table2D shift1_2_down_table;
-static table2D shift2_3_up_table;
-static table2D shift2_3_down_table;
-static table2D shift3_4_up_table;
-static table2D shift3_4_down_table;
 
 // Function to read and output EEPROM values
 void dumpEEPROM(uint16_t startAddr, uint16_t endAddr) {
@@ -142,7 +144,7 @@ void setTransmissionPins() {
 
     // Additional pins (hardcoded for now)
     // Gear selector input (analog)
-    pinMode(14, INPUT);
+    //pinMode(configPage16.trans_temp_sensor_pin, INPUT);
     
     // Transmission coolant temp sensor input (analog)
     pinMode(configPage16.shiftSelector_adc_pin, INPUT);
@@ -154,13 +156,75 @@ void setTransmissionPins() {
     pinMode(41, INPUT);
 }
 
+void printTempSensorDebug(TempSensor* sensor) {
+  // Read raw ADC value
+  uint16_t adcValue = readRawTemp(sensor);
+  
+  // Calculate voltage
+  float voltage = (adcValue * 5.0) / 1023.0;
+  
+  // Calculate resistance
+  float resistance = sensor->r1 * (voltage / (5.0 - voltage));
+  
+  // Calculate temperature in Kelvin
+  float tKelvin = 1.0 / ((1.0 / sensor->t0) + (1.0 / sensor->bValue) * log(resistance / sensor->r0));
+  
+  // Convert to Celsius
+  float tCelsius = tKelvin - 273.15;
+
+  int16_t rawTemp1 = configPage16.trans_temp_sensor_calibration_temp[0];
+  
+  // Print all values
+  Serial.println(F("Temperature Sensor Debug Information:"));
+
+  // Debug print all possible interpretations
+Serial.print(F("Resistance1 full value: ")); Serial.println(configPage16.trans_temp_sensor_calibration_resistance[0]);
+Serial.print(F("As float: ")); Serial.println((float)configPage16.trans_temp_sensor_calibration_resistance[0]);
+Serial.print(F("Divided by 10: ")); Serial.println(configPage16.trans_temp_sensor_calibration_resistance[0] / 10.0);
+Serial.print(F("Divided by 100: ")); Serial.println(configPage16.trans_temp_sensor_calibration_resistance[0] / 100.0);
+Serial.print(F("High byte: ")); Serial.println((configPage16.trans_temp_sensor_calibration_resistance[0] >> 8) & 0xFF);
+Serial.print(F("Low byte: ")); Serial.println(configPage16.trans_temp_sensor_calibration_resistance[0] & 0xFF);
+  // Add this debug print right after initializing your sensor
+Serial.println(F("Initialization Parameters:"));
+Serial.print(F("Pin: ")); Serial.println(configPage16.trans_temp_sensor_pin);
+Serial.print(F("Pullup: ")); Serial.println(configPage16.trans_temp_sensor_pullup_ohms);
+Serial.print(F("Temp Point 1: ")); Serial.println(rawTemp1);
+Serial.print(F("Temp Point 1: ")); Serial.println((float)rawTemp1);
+Serial.print(F("Resistance Point 1: ")); Serial.println(configPage16.trans_temp_sensor_calibration_resistance[0]);
+Serial.print(F("Temp Point 2: ")); Serial.println(configPage16.trans_temp_sensor_calibration_temp[1]);
+Serial.print(F("Resistance Point 2: ")); Serial.println(configPage16.trans_temp_sensor_calibration_resistance[1]);
+  Serial.print(F("ADC Pin: ")); Serial.println(sensor->pin);
+  Serial.print(F("Fixed Resistor: ")); Serial.print(sensor->r1); Serial.println(F(" ohms"));
+  Serial.print(F("B-Value: ")); Serial.println(sensor->bValue);
+  Serial.print(F("Reference T0: ")); Serial.print(sensor->t0 - 273.15); Serial.println(F("°C ("));
+  Serial.print(sensor->t0); Serial.println(F("K)"));
+  Serial.print(F("Reference R0: ")); Serial.print(sensor->r0); Serial.println(F(" ohms"));
+  Serial.println(F("----- Measurements -----"));
+  Serial.print(F("ADC Raw Value: ")); Serial.println(adcValue);
+  Serial.print(F("Voltage: ")); Serial.print(voltage); Serial.println(F("V"));
+  Serial.print(F("Thermistor Resistance: ")); Serial.print(resistance); Serial.println(F(" ohms"));
+  Serial.print(F("Temperature: ")); Serial.print(tCelsius); Serial.println(F("°C"));
+  Serial.println(F("------------------------"));
+}
+
 void initTransmission() {
     if (configPageTransmission.enableTransmission) {
         // Initialize all transmission pins
         setTransmissionPins();
-        
+
         // Initialize VSS
         initVSS();
+
+        // Initialize temperature sensor
+        initTempSensor(
+            &transTempSensor, 
+            configPage16.trans_temp_sensor_pin, 
+            configPage16.trans_temp_sensor_pullup_ohms, 
+            configPage16.trans_temp_sensor_calibration_temp[0], 
+            configPage16.trans_temp_sensor_calibration_resistance[0], 
+            configPage16.trans_temp_sensor_calibration_temp[1], 
+            configPage16.trans_temp_sensor_calibration_resistance[1]);
+        
 
         // Calculate gear selector value from TPS analog input  
         for(byte i = 0; i < 8; i++) {
@@ -238,14 +302,20 @@ void updateTransmission() {
     updateVSS();
 
     // Set pin 25 as output
-    pinMode(25, OUTPUT);
+    //pinMode(25, OUTPUT);
     // Set pin 25 as output
-    pinMode(7, OUTPUT);
+    //pinMode(7, OUTPUT);
   
     // Set pin 25 high
-    digitalWrite(25, HIGH);
-    digitalWrite(7, LOW);
+    //digitalWrite(25, HIGH);
+    //digitalWrite(7, LOW);
     
+    // TEST
+    float lastTemp = calculateTemperature(&transTempSensor);
+    currentStatus.transTemp = lastTemp;
+    //Serial.print(F("Last Temp: ")); Serial.println(lastTemp);
+    //printTempSensorDebug(&transTempSensor);
+
     // Get current engine parameters from CAN inputs
     byte currentTPS = currentStatus.canin[configPageTransmission.canTPSIndex];
     byte currentMAP = currentStatus.canin[configPageTransmission.canMAPIndex];

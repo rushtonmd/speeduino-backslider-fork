@@ -2330,13 +2330,13 @@ void setPinMapping(byte boardID)
 
       #if defined(CORE_TEENSY41)
         //New pins for the actual T4.1 version of the Dropbear
-        pinBaro = A4; 
+        pinBaro = A5; 
         pinMAP = A5;
-        pinTPS = A3; //TPS input pin
-        pinIAT = A0; //IAT sensor pin
-        pinCLT = A1; //CLS sensor pin
-        pinO2 = A2; //O2 Sensor pin
-        pinBat = A15; //Battery reference voltage pin. Needs Alpha4+
+        pinTPS = A5; //TPS input pin
+        pinIAT = A5; //IAT sensor pin
+        pinCLT = A5; //CLS sensor pin
+        pinO2 = A5; //O2 Sensor pin
+        pinBat = A5; //Battery reference voltage pin. Needs Alpha4+
         pinLaunch = 36;
         pinFlex = 37; // Flex sensor
         pinSpareTemp1 = A16; 

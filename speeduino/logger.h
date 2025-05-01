@@ -12,11 +12,10 @@
 #include "globals.h" // Needed for FPU_MAX_SIZE
 
 #ifndef UNIT_TEST // Scope guard for unit testing
-  #define LOG_ENTRY_SIZE      130 /**< The size of the live data packet. This MUST match ochBlockSize setting in the ini file */
+  #define LOG_ENTRY_SIZE      134 /**< The size of the live data packet. This MUST match ochBlockSize setting in the ini file */
 #else
   #define LOG_ENTRY_SIZE      1 /**< The size of the live data packet. This MUST match ochBlockSize setting in the ini file */
 #endif
-
 byte getTSLogEntry(uint16_t byteNum);
 int16_t getReadableLogEntry(uint16_t logIndex);
 #if defined(FPU_MAX_SIZE) && FPU_MAX_SIZE >= 32 //cppcheck-suppress misra-c2012-20.9

@@ -225,6 +225,11 @@ struct statuses {
   byte outputsStatus;
   byte TS_SD_Status; //TunerStudios SD card status
   byte airConStatus;
+  byte gearSelector_ADC;
+  byte gearSelectorChosenGear;
+  uint16_t transTemp_CalculatedResistance;
+  int16_t transTemp;
+
 };
 
 /**
