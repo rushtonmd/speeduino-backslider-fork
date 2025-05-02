@@ -1064,9 +1064,19 @@ struct config16 {
   byte shift_solenoid_1_gear_pwm[8]; // PWM values for shift solenoid 1 for each gear
   byte shift_solenoid_2_gear_pwm[8]; // PWM values for shift solenoid 2 for each gear
 
+  byte can_baud_rate; // CAN baud rate
+  byte can_baseAddress; // CAN base address
+  uint16_t can_id_tps; // CAN ID for TPS
+  byte can_offset_tps; // CAN offset for TPS
+  byte can_endianness_tps; // CAN endianness for TPS
+  byte can_bytes_tps; // CAN bytes for TPS
+  uint16_t can_id_rpm; // CAN ID for RPM
+  byte can_offset_rpm; // CAN offset for RPM
+  byte can_endianness_rpm; // CAN endianness for RPM
+  byte can_bytes_rpm; // CAN bytes for RPM
 
 // Padding to make struct exactly 150 bytes
-  byte unused16_padding[33];   // Padding to make struct exactly 150 bytes
+  byte unused16_padding[21];   // Padding to make struct exactly 150 bytes
 
   // NEED TO ADD THE FOLLOWING
   // paddle shifters pin numbers
