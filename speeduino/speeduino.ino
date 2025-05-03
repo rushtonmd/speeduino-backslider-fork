@@ -129,15 +129,24 @@ void __attribute__((always_inline)) loop(void)
         }
       #endif
       #if defined (NATIVE_CAN_AVAILABLE)
+
         if (configPage9.enable_intcan == 1) // use internal can module
         {            
           //check local can module
           // if ( BIT_CHECK(LOOP_TIMER, BIT_TIMER_15HZ) or (CANbus0.available())
+          
           while (CAN_read()) 
           {
-            can_Command();
-            readAuxCanBus();
-            if (configPage2.canWBO > 0) { receiveCANwbo(); }
+            // TRANSMISION MOD TESTING START
+            //Serial.println("receiveTransmissionCAN()");
+
+            processTransmissionCAN();
+
+            // TRANSMISION MOD TESTING END
+            //can_Command();
+            //readAuxCanBus();
+            //if (configPage2.canWBO > 0) { receiveCANwbo(); }
+            // TRANSMISION MOD TESTING END
           }
         }   
       #endif

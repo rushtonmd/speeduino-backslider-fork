@@ -778,6 +778,7 @@ void obd_response(uint8_t PIDmode, uint8_t requestedPIDlow, uint8_t requestedPID
 
 void readAuxCanBus()
 {
+
   for (int i = 0; i < 16; i++)
   {
     uint16_t channelAddress = (configPage9.caninput_source_can_address[i] + TS_CAN_OFFSET);
@@ -805,4 +806,85 @@ void readAuxCanBus()
     }
   } 
 }
+
+uint16_t processCurrentCANMessage(uint16_t expectedID, uint8_t startByte, bool isTwoBytes = false, bool isLittleEndian = true) {
+    // Check if message ID matches expected ID
+    if (inMsg.id != expectedID) {
+        return 0;  // Return 0 if ID doesn't match
+    }
+
+    if (!isTwoBytes) {
+        // Single byte value
+        return inMsg.buf[startByte];
+    } else {
+        // Two byte value with endianness handling
+        if (isLittleEndian) {
+            // Little Endian: LSB first
+            return ((inMsg.buf[startByte]) | (inMsg.buf[startByte + 1] << 8));
+        } else {
+            // Big Endian: MSB first
+            return ((inMsg.buf[startByte] << 8) | (inMsg.buf[startByte + 1]));
+        }
+    }
+}
+
+// TRANSMISION MOD TESTING START
+void processTransmissionCAN()
+{
+  // There are currently 2 types of transmission CAN messages: RPM and TPS
+  // These are sent from speeduino through broadcast, but can be sent by any can device
+  
+  // Serial.println("processTransmissionCAN()");
+  //   Serial.print("TEST CAN BUS ID:  ");
+  // Serial.println(inMsg.id);
+  // Serial.print("TEST CAN BUS LENGTH:  ");
+  // Serial.println(TS_CAN_OFFSET);
+  // Serial.print("TEST CAN BUS DATA:  ");
+  // Serial.println(inMsg.buf[0]);
+  // Serial.println(inMsg.buf[1]);
+  // Serial.println(inMsg.buf[2]);
+  // Serial.println(inMsg.buf[3]);
+  // Serial.println(inMsg.buf[4]);
+  // Serial.println(inMsg.buf[5]);
+  // Serial.println(inMsg.buf[6]);
+  // Serial.println(inMsg.buf[7]);
+
+  // Get config values
+  bool endianess = configPage16.can_endianness_tps;
+  int offset = configPage16.can_offset_tps;
+  int bytes = configPage16.can_bytes_tps;
+  int id = configPage16.can_id_tps;
+
+
+  // Serial.print("TEST ENDIANESS:  ");
+  // Serial.println(endianess);
+  // Serial.print("TEST OFFSET:  ");
+  // Serial.println(offset);
+  // Serial.print("TEST BYTES:  ");
+  // Serial.println(bytes);
+  // Serial.print("TEST ID:  ");
+  // Serial.println(id);
+
+  // Two byte little-endian example
+  //uint16_t canRPM = processCANMessage(id, offset, (bytes > 1), endianess);
+  uint16_t canTPS = processCurrentCANMessage(id, offset, (bytes > 1), endianess);
+  currentStatus.canTPS = canTPS;
+
+
+  endianess = configPage16.can_endianness_rpm;
+  offset = configPage16.can_offset_rpm;
+  bytes = configPage16.can_bytes_rpm;
+  id = configPage16.can_id_rpm;
+
+  uint16_t canRPM = processCurrentCANMessage(id, offset, (bytes > 1), endianess);
+  currentStatus.canRPM = canRPM;
+  // Serial.print("TEST CAN RPM:  ");
+  // Serial.println(canRPM);
+  // Serial.println(canTPS);
+
+
+
+}
+// TRANSMISION MOD TESTING END  
+
 #endif

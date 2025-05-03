@@ -3,23 +3,21 @@
 
 #include <Arduino.h>
 
-// CAN message structure
-typedef struct CAN_message_t {
-    uint32_t id = 0;         // can identifier
-    uint16_t timestamp = 0;  // time when message arrived
-    uint8_t idhit = 0;       // filter that id came from
-    struct {
-        bool extended = 0;     // identifier is extended (29-bit)
-        bool remote = 0;       // remote transmission request packet type
-        bool overrun = 0;      // message overrun
-        bool reserved = 0;
-    } flags;
-    uint8_t len = 8;         // length of data
-    uint8_t buf[8] = { 0 };  // data
-    int8_t mb = 0;           // used to identify mailbox reception
-    uint8_t bus = 1;         // used to identify where the message came (CAN1, CAN2 or CAN3)
-    bool seq = 0;            // sequential frames
-} CAN_message_t;
+// Define NATIVE_CAN_AVAILABLE if not already defined
+#ifndef NATIVE_CAN_AVAILABLE
+#define NATIVE_CAN_AVAILABLE 1
+#endif
+
+#if defined(NATIVE_CAN_AVAILABLE)
+#include <FlexCAN_T4.h>
+
+// CAN instance declaration
+//extern FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> can1;
+
+// CAN message structures from comms_CAN.cpp
+extern CAN_message_t inMsg;
+extern CAN_message_t outMsg;
+#endif
 
 // CAN message parsing helpers with byte offsets
 uint16_t transCAN_ParseUint16AtOffset(uint8_t* data, uint8_t offset, bool isLittleEndian = false);

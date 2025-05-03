@@ -229,6 +229,8 @@ struct statuses {
   byte gearSelectorChosenGear;
   uint16_t transTemp_CalculatedResistance;
   int16_t transTemp;
+  uint16_t canRPM;
+  uint16_t canTPS;
 
 };
 

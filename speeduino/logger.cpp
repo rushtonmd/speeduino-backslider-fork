@@ -183,6 +183,12 @@ byte getTSLogEntry(uint16_t byteNum)
     case 134: statusValue = lowByte(currentStatus.transTemp); break; 
     case 135: statusValue = highByte(currentStatus.transTemp); break;
 
+    case 136: statusValue = lowByte(currentStatus.canRPM); break; //rpm HB
+    case 137: statusValue = highByte(currentStatus.canRPM); break; //rpm LB
+
+    case 138: statusValue = lowByte(currentStatus.canTPS); break; //tps HB
+    case 139: statusValue = highByte(currentStatus.canTPS); break; //tps LB
+
     default: statusValue = 0; // MISRA check
   }
 
@@ -314,6 +320,8 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 95: statusValue = currentStatus.gearSelectorChosenGear; break;
     case 96: statusValue = currentStatus.transTemp_CalculatedResistance; break;
     case 97: statusValue = currentStatus.transTemp; break;
+    case 98: statusValue = currentStatus.canRPM; break;
+    case 99: statusValue = currentStatus.canTPS; break;
     default: statusValue = 0; // MISRA check
   }
 

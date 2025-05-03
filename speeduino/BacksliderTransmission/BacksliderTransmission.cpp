@@ -1,9 +1,11 @@
 #include "BacksliderTransmission.h"
 #include "VSSHandler.h"
 #include "TemperatureSensor.h"
+#include "CANHandler.h"
 #include "globals.h"  // This contains the currentStatus struct
 #include "pages.h"    // For getPageValue
 #include <EEPROM.h>   // For EEPROM access
+// #include "CANHandler.h"  // For CAN functionality
 
 // Debug flag for this module
 bool debugEnabled = false;
@@ -301,6 +303,8 @@ void updateTransmission() {
     // Update VSS speed calculation
     updateVSS();
 
+    //transCAN_ProcessMessages();
+
     // Set pin 25 as output
     //pinMode(25, OUTPUT);
     // Set pin 25 as output
@@ -455,11 +459,17 @@ void sendTransmissionCAN() {
 }
 
 void receiveTransmissionCAN() {
-    if (!configPageTransmission.enableTransmission) return;
+    //if (!configPageTransmission.enableTransmission) return;
     
-    // Handle incoming CAN messages
-    // This will process commands from the transmission controller
-    // and update the transmission state accordingly
+    // Process any incoming CAN messages
+    //transCAN_ProcessMessages();
     
-    // TODO: Implement CAN message receiving
+    // The actual message processing is handled in CANHandler.cpp's transCAN_ProcessMessages()
+    // where we can add specific message handling logic for different message IDs
+    // For example:
+    // - Gear position updates
+    // - Temperature readings
+    // - Pressure readings
+    // - Error codes
+    // - Status updates
 } 

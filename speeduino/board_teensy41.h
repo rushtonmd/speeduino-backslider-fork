@@ -180,7 +180,7 @@
   extern FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can1;
   extern FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> Can2;
   */
-  #define NATIVE_CAN_AVAILABLE //Disable for now as it causes lockup 
+  #define NATIVE_CAN_AVAILABLE //Disable for now as it causes lockup
   
 #endif //CORE_TEENSY
 #endif //TEENSY41_H
