@@ -1,7 +1,6 @@
 #include "BacksliderTransmission.h"
 #include "VSSHandler.h"
 #include "TemperatureSensor.h"
-#include "CANHandler.h"
 #include "globals.h"  // This contains the currentStatus struct
 #include "pages.h"    // For getPageValue
 #include <EEPROM.h>   // For EEPROM access
