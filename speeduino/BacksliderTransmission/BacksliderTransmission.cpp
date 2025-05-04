@@ -2,6 +2,7 @@
 #include "VSSHandler.h"
 #include "TemperatureSensor.h"
 #include "PaddleShifter.h"
+#include "TransmissionSolenoids.h"
 #include "globals.h"  // This contains the currentStatus struct
 #include "pages.h"    // For getPageValue
 #include <EEPROM.h>   // For EEPROM access
@@ -79,6 +80,8 @@ static table2D shift2_3_down_table;
 static table2D shift3_4_up_table;
 static table2D shift3_4_down_table;
 
+
+
 // Temperature sensor instance
 static TempSensor transTempSensor;
 
@@ -115,20 +118,20 @@ void dumpEEPROM(uint16_t startAddr, uint16_t endAddr) {
 
 void setTransmissionPins() {
     // Set all solenoid pins to OUTPUT mode
-    pinMode(configPageTransmission.shiftSolenoid1Pin, OUTPUT);
-    pinMode(configPageTransmission.shiftSolenoid2Pin, OUTPUT);
-    pinMode(configPageTransmission.shiftSolenoid3Pin, OUTPUT);
-    pinMode(configPageTransmission.shiftSolenoid4Pin, OUTPUT);
-    pinMode(configPageTransmission.shiftSolenoid5Pin, OUTPUT);
-    pinMode(configPageTransmission.shiftSolenoid6Pin, OUTPUT);
+    // pinMode(configPageTransmission.shiftSolenoid1Pin, OUTPUT);
+    // pinMode(configPageTransmission.shiftSolenoid2Pin, OUTPUT);
+    // pinMode(configPageTransmission.shiftSolenoid3Pin, OUTPUT);
+    // pinMode(configPageTransmission.shiftSolenoid4Pin, OUTPUT);
+    // pinMode(configPageTransmission.shiftSolenoid5Pin, OUTPUT);
+    // pinMode(configPageTransmission.shiftSolenoid6Pin, OUTPUT);
     
-    // Initialize all solenoids to OFF state
-    digitalWrite(configPageTransmission.shiftSolenoid1Pin, LOW);
-    digitalWrite(configPageTransmission.shiftSolenoid2Pin, LOW);
-    digitalWrite(configPageTransmission.shiftSolenoid3Pin, LOW);
-    digitalWrite(configPageTransmission.shiftSolenoid4Pin, LOW);
-    digitalWrite(configPageTransmission.shiftSolenoid5Pin, LOW);
-    digitalWrite(configPageTransmission.shiftSolenoid6Pin, LOW);
+    // // Initialize all solenoids to OFF state
+    // digitalWrite(configPageTransmission.shiftSolenoid1Pin, LOW);
+    // digitalWrite(configPageTransmission.shiftSolenoid2Pin, LOW);
+    // digitalWrite(configPageTransmission.shiftSolenoid3Pin, LOW);
+    // digitalWrite(configPageTransmission.shiftSolenoid4Pin, LOW);
+    // digitalWrite(configPageTransmission.shiftSolenoid5Pin, LOW);
+    // digitalWrite(configPageTransmission.shiftSolenoid6Pin, LOW);
 
     // Additional pins (hardcoded for now)
     // Gear selector input (analog)
@@ -137,11 +140,6 @@ void setTransmissionPins() {
     // Transmission coolant temp sensor input (analog)
     pinMode(configPage16.shiftSelector_adc_pin, INPUT);
     
-    // Shift up button input (digital with pullup)
-    pinMode(configPage16.paddle_shifter_pin_1, INPUT);
-    
-    // Shift down button input (digital with pullup)
-    pinMode(configPage16.paddle_shifter_pin_2, INPUT);
 }
 
 void printTempSensorDebug(TempSensor* sensor) {
@@ -197,6 +195,13 @@ Serial.print(F("Resistance Point 2: ")); Serial.println(configPage16.trans_temp_
 
 void initTransmission() {
     if (configPageTransmission.enableTransmission) {
+
+        // Set Default Mode to Manual
+        currentStatus.paddleShifter_ShiftMode = PADDLE_SHIFT_MODE_MANUAL;
+
+         // Initialize the transmission solenoids
+        initTransmissionSolenoids();
+
         // Initialize all transmission pins
         setTransmissionPins();
 
@@ -283,6 +288,8 @@ void initTransmission() {
         // Initialize CAN interface
         // TODO: Add CAN initialization code
 
+
+
         setCurrentGear(CurrentGear::FIRST);
     }
 }
@@ -299,6 +306,19 @@ void updateTransmission() {
     // Update paddle shifter state
     updatePaddleShifters();
 
+    // Update the transmission solenoids
+    updateTransmissionSolenoids();
+
+    // TEST PRINT
+    // Serial.println(F("Transmission Solenoid States: "));
+    // Serial.println(currentStatus.gear);
+    // Serial.println(currentStatus.trans_solenoidStates[0]);
+    // Serial.println(currentStatus.trans_solenoidStates[1]);
+    // Serial.println(currentStatus.trans_solenoidStates[2]);
+    // Serial.println(currentStatus.trans_solenoidStates[3]);
+    // Serial.println(currentStatus.trans_solenoidStates[4]);
+    // Serial.println(currentStatus.trans_solenoidStates[5]);
+
     // Update VSS speed calculation
     updateVSS();
 
@@ -310,7 +330,7 @@ void updateTransmission() {
     byte currentTPS = currentStatus.canin[configPageTransmission.canTPSIndex];
     byte currentMAP = currentStatus.canin[configPageTransmission.canMAPIndex];
     byte currentCLT = currentStatus.canin[configPageTransmission.canCLTIndex];
-    byte currentGearSelector = currentStatus.tpsADC;
+    //byte currentGearSelector = currentStatus.tpsADC;
 
     // Update transmission state based on current parameters
     if (getGearSelector() == GearSelector::DRIVE && currentStatus.paddleShifter_ShiftMode == PADDLE_SHIFT_MODE_AUTO) {
@@ -392,41 +412,10 @@ void updateTransmission() {
         setCurrentGear(CurrentGear::PARK);
     }
     
-    // Send current status via CAN
-    sendTransmissionCAN();
-    
-    // Check for incoming CAN messages
-    receiveTransmissionCAN();
+
 }
 
-void sendTransmissionCAN() {
-    if (!configPageTransmission.enableTransmission) return;
-    
-    // Send current transmission status
-    // Using CAN input values:
-    // - currentStatus.vss for vehicle speed
-    // - currentStatus.canin[configPageTransmission.canTPSIndex] for throttle position
-    // - currentStatus.canin[configPageTransmission.canMAPIndex] for manifold pressure
-    // - currentStatus.canin[configPageTransmission.canCLTIndex] for coolant temperature
-    
-    // TODO: Implement CAN message sending
-}
 
-void receiveTransmissionCAN() {
-    //if (!configPageTransmission.enableTransmission) return;
-    
-    // Process any incoming CAN messages
-    //transCAN_ProcessMessages();
-    
-    // The actual message processing is handled in CANHandler.cpp's transCAN_ProcessMessages()
-    // where we can add specific message handling logic for different message IDs
-    // For example:
-    // - Gear position updates
-    // - Temperature readings
-    // - Pressure readings
-    // - Error codes
-    // - Status updates
-}
 
 void setGearSelector(GearSelector gear) {
     // Update the gear selector position in the current status

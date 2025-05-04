@@ -192,6 +192,12 @@ byte getTSLogEntry(uint16_t byteNum)
     case 140: statusValue = currentStatus.paddleShifter1_State; break;
     case 141: statusValue = currentStatus.paddleShifter2_State; break;  
     case 142: statusValue = currentStatus.paddleShifter_ShiftMode; break;
+    case 143: statusValue = currentStatus.trans_solenoidStates[0]; break;
+    case 144: statusValue = currentStatus.trans_solenoidStates[1]; break;
+    case 145: statusValue = currentStatus.trans_solenoidStates[2]; break;
+    case 146: statusValue = currentStatus.trans_solenoidStates[3]; break;
+    case 147: statusValue = currentStatus.trans_solenoidStates[4]; break;
+    case 148: statusValue = currentStatus.trans_solenoidStates[5]; break;
 
     default: statusValue = 0; // MISRA check
   }
@@ -329,6 +335,14 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 100: statusValue = currentStatus.paddleShifter1_State; break;
     case 101: statusValue = currentStatus.paddleShifter2_State; break;
     case 102: statusValue = currentStatus.paddleShifter_ShiftMode; break;
+    case 103: statusValue = currentStatus.trans_solenoidStates[0]; break;
+    case 104: statusValue = currentStatus.trans_solenoidStates[1]; break;
+    case 105: statusValue = currentStatus.trans_solenoidStates[2]; break;
+    case 106: statusValue = currentStatus.trans_solenoidStates[3]; break;
+    case 107: statusValue = currentStatus.trans_solenoidStates[4]; break;
+    case 108: statusValue = currentStatus.trans_solenoidStates[5]; break;
+
+    
     default: statusValue = 0; // MISRA check
   }
 

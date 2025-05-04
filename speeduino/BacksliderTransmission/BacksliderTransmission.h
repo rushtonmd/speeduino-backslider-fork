@@ -78,8 +78,6 @@ extern struct configTransmission configPageTransmission;
 // Function declarations
 void initTransmission();
 void updateTransmission();
-void sendTransmissionCAN();
-void receiveTransmissionCAN();
 void setTransmissionPins();  // New function to set pin values
 void setGearSelector(GearSelector gear);  // Function to set the gear selector position
 
