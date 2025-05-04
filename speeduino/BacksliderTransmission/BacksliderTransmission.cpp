@@ -138,10 +138,10 @@ void setTransmissionPins() {
     pinMode(configPage16.shiftSelector_adc_pin, INPUT);
     
     // Shift up button input (digital with pullup)
-    pinMode(40, INPUT);
+    pinMode(configPage16.paddle_shifter_pin_1, INPUT);
     
     // Shift down button input (digital with pullup)
-    pinMode(41, INPUT);
+    pinMode(configPage16.paddle_shifter_pin_2, INPUT);
 }
 
 void printTempSensorDebug(TempSensor* sensor) {
@@ -288,6 +288,14 @@ void initTransmission() {
 }
 
 void updateTransmission() {
+    // Read ADC value from shift selector pin and convert to 0-255 range
+    uint16_t adcValue = analogRead(configPage16.shiftSelector_adc_pin);
+    byte normalizedValue = map(adcValue, 0, 1023, 0, 255);
+    
+    // Lookup gear selector value from table
+    byte targetGear = table2D_getValue(&gearSelector_table, normalizedValue);
+    setGearSelector(static_cast<GearSelector>(targetGear));
+
     // Update paddle shifter state
     updatePaddleShifters();
 
@@ -305,7 +313,7 @@ void updateTransmission() {
     byte currentGearSelector = currentStatus.tpsADC;
 
     // Update transmission state based on current parameters
-    if (getGearSelector() == GearSelector::DRIVE) {
+    if (getGearSelector() == GearSelector::DRIVE && currentStatus.paddleShifter_ShiftMode == PADDLE_SHIFT_MODE_AUTO) {
         // Check for upshifts using the 2D tables
         switch (getCurrentGear()) {
             case CurrentGear::FIRST:
