@@ -47,6 +47,9 @@ struct configTransmission {
     uint8_t canMAPIndex;     // Index in currentStatus.canin[] for MAP
     uint8_t canCLTIndex;     // Index in currentStatus.canin[] for Coolant Temp
 
+    // Paddle shifter configuration
+    uint16_t paddle_shifter_shift_delay;  // Delay in milliseconds for mode toggle
+
     // Gear Selector from TPS Analog Input
     uint8_t gearSelector_tps[8];    // Gear selector points for 1-2 upshift
     uint8_t gearSelector_target[8];    // TPS points for 1-2 upshift
@@ -78,6 +81,7 @@ void updateTransmission();
 void sendTransmissionCAN();
 void receiveTransmissionCAN();
 void setTransmissionPins();  // New function to set pin values
+void setGearSelector(GearSelector gear);  // Function to set the gear selector position
 
 // Helper functions for shift curves
 uint16_t getShiftVSS(CurrentGear gearFrom, CurrentGear gearTo, byte tps, bool isUpshift);

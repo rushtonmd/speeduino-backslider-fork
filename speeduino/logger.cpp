@@ -189,6 +189,10 @@ byte getTSLogEntry(uint16_t byteNum)
     case 138: statusValue = lowByte(currentStatus.canTPS); break; //tps HB
     case 139: statusValue = highByte(currentStatus.canTPS); break; //tps LB
 
+    case 140: statusValue = currentStatus.paddleShifter1_State; break;
+    case 141: statusValue = currentStatus.paddleShifter2_State; break;  
+    case 142: statusValue = currentStatus.paddleShifter_ShiftMode; break;
+
     default: statusValue = 0; // MISRA check
   }
 
@@ -322,6 +326,9 @@ int16_t getReadableLogEntry(uint16_t logIndex)
     case 97: statusValue = currentStatus.transTemp; break;
     case 98: statusValue = currentStatus.canRPM; break;
     case 99: statusValue = currentStatus.canTPS; break;
+    case 100: statusValue = currentStatus.paddleShifter1_State; break;
+    case 101: statusValue = currentStatus.paddleShifter2_State; break;
+    case 102: statusValue = currentStatus.paddleShifter_ShiftMode; break;
     default: statusValue = 0; // MISRA check
   }
 

@@ -1,6 +1,7 @@
 #include "BacksliderTransmission.h"
 #include "VSSHandler.h"
 #include "TemperatureSensor.h"
+#include "PaddleShifter.h"
 #include "globals.h"  // This contains the currentStatus struct
 #include "pages.h"    // For getPageValue
 #include <EEPROM.h>   // For EEPROM access
@@ -61,7 +62,6 @@ struct configTransmission configPageTransmission = {
 };
 
 // Current transmission state
-static uint16_t lastShiftTime = 0;
 static const uint16_t SHIFT_DELAY = 500; // 500ms shift delay
 
 // Local pointers to currentStatus variables for better readability
@@ -82,23 +82,10 @@ static table2D shift3_4_down_table;
 // Temperature sensor instance
 static TempSensor transTempSensor;
 
-// Helper functions for cleaner code
-static inline GearSelector getGearSelector() {
-    int rawValue = analogRead(configPage16.shiftSelector_adc_pin);  // Read from gear selector pin (0-1023)
-    byte currentGearSelector = map(rawValue, 0, 1023, 0, 255);  // Scale to 0-255
-    byte selectedFromTable = static_cast<byte>(table2D_getValue(&gearSelector_table, currentGearSelector));
-    currentStatus.gearSelector_ADC = currentGearSelector;  // Set the currentStatus.gearSelector
-    currentStatus.gearSelectorChosenGear = selectedFromTable;  // Set the currentStatus.gearSelector
-    return static_cast<GearSelector>(selectedFromTable);
-}
-
-static inline CurrentGear getCurrentGear() {
-    return static_cast<CurrentGear>(*currentGear);
-}
-
-static inline void setCurrentGear(CurrentGear gear) {
-    *currentGear = static_cast<byte>(gear);
-}
+// Gear selector functions
+// inline GearSelector getGearSelector() {
+//     return static_cast<GearSelector>(currentStatus.gearSelectorChosenGear);
+// }
 
 // Function to read and output EEPROM values
 void dumpEEPROM(uint16_t startAddr, uint16_t endAddr) {
@@ -225,7 +212,9 @@ void initTransmission() {
             configPage16.trans_temp_sensor_calibration_resistance[0], 
             configPage16.trans_temp_sensor_calibration_temp[1], 
             configPage16.trans_temp_sensor_calibration_resistance[1]);
-        
+
+        // Initialize paddle shifters
+        initPaddleShifters();
 
         // Calculate gear selector value from TPS analog input  
         for(byte i = 0; i < 8; i++) {
@@ -299,25 +288,15 @@ void initTransmission() {
 }
 
 void updateTransmission() {
+    // Update paddle shifter state
+    updatePaddleShifters();
+
     // Update VSS speed calculation
     updateVSS();
 
-    //transCAN_ProcessMessages();
-
-    // Set pin 25 as output
-    //pinMode(25, OUTPUT);
-    // Set pin 25 as output
-    //pinMode(7, OUTPUT);
-  
-    // Set pin 25 high
-    //digitalWrite(25, HIGH);
-    //digitalWrite(7, LOW);
-    
     // TEST
     float lastTemp = calculateTemperature(&transTempSensor);
     currentStatus.transTemp = lastTemp;
-    //Serial.print(F("Last Temp: ")); Serial.println(lastTemp);
-    //printTempSensorDebug(&transTempSensor);
 
     // Get current engine parameters from CAN inputs
     byte currentTPS = currentStatus.canin[configPageTransmission.canTPSIndex];
@@ -327,33 +306,6 @@ void updateTransmission() {
 
     // Update transmission state based on current parameters
     if (getGearSelector() == GearSelector::DRIVE) {
-        // if(false) {  
-
-            
-        //     Serial.println("Trying to shift!");
-        //     Serial.print("Current VSS: ");
-        //     Serial.println(currentStatus.vss);
-        //     Serial.print("Current gear: ");
-        //     Serial.print((int)getCurrentGear());
-        //     Serial.println();
-        //     Serial.println("******************************");
-        // Serial.print("Page 15 Start:");
-        // dumpEEPROM(0, 4000); // Dump EEPROM from address 3199 to 3457
-        // for(byte i = 0; i < 191; i++) {
-        //     // TPS points (using flexBoostBins)
-            
-        //     //Serial.println(getPageValue(15, i));
-           
-        //     //configPageTransmission.gearSelector_target[i] = getPageValue(15, 72 + i);
-        //     //configPageTransmission.gearSelector_target[i] = configPage15.loadBinsDutyLookup[i];
-
-        //     // VSS points for downshift (using flexFuelBins)
-        //     //configPageTransmission.gearSelector_tps[i] = getPageValue(15, 64 + i);
-        // }
-        //  Serial.println("-------------------------------");
-
-        // }
-        
         // Check for upshifts using the 2D tables
         switch (getCurrentGear()) {
             case CurrentGear::FIRST:
@@ -362,11 +314,6 @@ void updateTransmission() {
                     // Shift to 2nd
                     setCurrentGear(CurrentGear::SECOND);
                     lastShiftTime = millis();
-                    // if(debugEnabled) {
-                    //     Serial.print("Shifted to gear: ");
-                    //     Serial.print((int)getCurrentGear());
-                    //     Serial.println();
-                    // }
                 }
                 break;
             case CurrentGear::SECOND:
@@ -471,4 +418,9 @@ void receiveTransmissionCAN() {
     // - Pressure readings
     // - Error codes
     // - Status updates
+}
+
+void setGearSelector(GearSelector gear) {
+    // Update the gear selector position in the current status
+    currentStatus.gearSelectorChosenGear = static_cast<uint8_t>(gear);
 } 

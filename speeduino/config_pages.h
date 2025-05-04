@@ -1075,8 +1075,12 @@ struct config16 {
   byte can_endianness_rpm; // CAN endianness for RPM
   byte can_bytes_rpm; // CAN bytes for RPM
 
+  byte paddle_shifter_pin_1; // Pin number for the paddle shifter
+  byte paddle_shifter_pin_2; // Pin number for the paddle shifter 2
+  byte paddle_shifter_shift_delay; // Delay in milliseconds for the paddle shifter
+
 // Padding to make struct exactly 150 bytes
-  byte unused16_padding[21];   // Padding to make struct exactly 150 bytes
+  byte unused16_padding[18];   // Padding to make struct exactly 150 bytes
 
   // NEED TO ADD THE FOLLOWING
   // paddle shifters pin numbers

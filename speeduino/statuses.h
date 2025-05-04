@@ -227,10 +227,14 @@ struct statuses {
   byte airConStatus;
   byte gearSelector_ADC;
   byte gearSelectorChosenGear;
+  byte currentGear;  // Current gear position (PARK, REVERSE, NEUTRAL, FIRST, SECOND, THIRD, FOURTH)
   uint16_t transTemp_CalculatedResistance;
   int16_t transTemp;
   uint16_t canRPM;
   uint16_t canTPS;
+  byte paddleShifter1_State;
+  byte paddleShifter2_State;
+  byte paddleShifter_ShiftMode;
 
 };
 
