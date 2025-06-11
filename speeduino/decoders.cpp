@@ -3014,6 +3014,11 @@ void triggerSec_Nissan360(void)
   //OPTIONAL: Set filter at 25% of the current speed
   //triggerSecFilterTime = curGap2 >> 2;
 
+  // Branchless lookup using direct array indexing
+  static const uint16_t toothLookup_nissanvg30[26] = {
+    //   0-2     3-5(W4)    6    7-9(W8)   10   11-13(W12) 14   15-17(W16) 18   19-21(W20) 22   23-25(W24)
+    0,0,0,  144,144,144,  0,   88,88,88,  0,   32,32,32,  0,  336,336,336, 0,  280,280,280, 0,  224,224,224
+  };
 
   //Calculate number of primary teeth that this window has been active for
   byte trigEdge;
@@ -3056,11 +3061,57 @@ void triggerSec_Nissan360(void)
       }
       else if(configPage2.nCylinders == 6)
       {
-        //Pattern on the 6 cylinders is 4-8-12-16-20-24
-        if( (secondaryDuration >= 3) && (secondaryDuration <= 5) ) //Duration of window = 4 primary teeth
+         /* VG30 Nissan 360-tooth trigger pattern with 6 cam windows
+          * 
+          * The VG30 engine uses a 360-tooth crank trigger wheel with 6 cam trigger windows.
+          * Each window corresponds to a cylinder firing event and contains a different number
+          * of crank teeth to provide unique positioning information.
+          * 
+          * ACTUAL Window pattern (determined via logging): 24-20-16-12-8-4 teeth per window
+          * Window positions (shifted +100 teeth to avoid wraparound issues at 360):
+          * - Size 24 window: Start: 200, End: 224  
+          * - Size 20 window: Start: 260, End: 280
+          * - Size 16 window: Start: 320, End: 336
+          * - Size 12 window: Start: 20,  End: 32
+          * - Size 8 window:  Start: 80,  End: 88
+          * - Size 4 window:  Start: 140, End: 144
+          * 
+          * The 'secondaryDuration' variable contains the count of crank teeth that occurred
+          * during the cam window. By measuring this duration, we can determine which window
+          * we're currently in and set the appropriate toothCurrentCount position.
+          * 
+          * This implementation uses a branchless lookup table for optimal performance:
+          * - Array indices 3-5 (4±1 teeth) → Size 4 window  → toothCurrentCount = 144
+          * - Array indices 7-9 (8±1 teeth) → Size 8 window  → toothCurrentCount = 88  
+          * - Array indices 11-13 (12±1 teeth) → Size 12 window → toothCurrentCount = 32
+          * - Array indices 15-17 (16±1 teeth) → Size 16 window → toothCurrentCount = 336
+          * - Array indices 19-21 (20±1 teeth) → Size 20 window → toothCurrentCount = 280
+          * - Array indices 23-25 (24±1 teeth) → Size 24 window → toothCurrentCount = 224
+          * 
+          * Position offset: All positions are shifted +100 teeth to prevent the 20-tooth
+          * window from crossing the 0/360 tooth boundary, which caused wraparound calculation
+          * errors (20 - 360 = -340, wrapping to 172 in byte arithmetic). This offset can be
+          * compensated in software timing calculations.
+          * 
+          * Note: Both initial sync and resync use the same logic to detect all 6 windows.
+          * This provides 6x more sync opportunities and faster recovery from sync loss.
+          * 
+          * The ±1 tolerance accounts for timing variations and noise in the signal.
+          * If secondaryDuration doesn't match any expected window size, sync is lost.
+          */
+        
+         
+        // Perform bounds check and lookup the tooth count for this window duration
+        if(secondaryDuration < 26 && toothLookup_nissanvg30[secondaryDuration] != 0) 
         {
-          toothCurrentCount = 124; //End of smallest window is after 60+60+4 primary teeth
+          // Valid window detected - set position and confirm sync
+          toothCurrentCount = toothLookup_nissanvg30[secondaryDuration];
           currentStatus.hasSync = true;
+        } 
+        else 
+        {
+          // Invalid window duration - lose sync (noise, missing teeth, or unexpected pattern)
+          currentStatus.hasSync = false;
         }
       }
       else if(configPage2.nCylinders == 8)
@@ -3089,9 +3140,19 @@ void triggerSec_Nissan360(void)
         }
         else if(configPage2.nCylinders == 6)
         {
-          if( (secondaryDuration >= 3) && (secondaryDuration <= 5) ) //Duration of window = 4 primary teeth
+
+          // Check for any valid window to maintain/recover sync
+          if(secondaryDuration < 26 && toothLookup_nissanvg30[secondaryDuration] != 0) 
           {
-            toothCurrentCount = 124; //End of smallest window is after 60+60+4 primary teeth
+            // Valid window detected - update position and maintain sync
+            toothCurrentCount = toothLookup_nissanvg30[secondaryDuration];
+            currentStatus.hasSync = true;
+          } 
+          else 
+          {
+            // Invalid window duration - lose sync and increment loss counter
+            currentStatus.hasSync = false;
+            currentStatus.syncLossCounter++;
           }
         } //Cylinder count
       } //use resync
